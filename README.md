@@ -155,7 +155,7 @@ In a local SQLite database in `~/Library/Application Support`: file permissions 
 Not yet — build from source with `make install`. Downloads are planned once the repo is public.
 
 **Which languages does the UI support?**
-English only for now; localization is not on the v1 roadmap.
+English and Russian — the UI follows your system language (System Settings → General → Language & Region).
 
 ## Status
 
