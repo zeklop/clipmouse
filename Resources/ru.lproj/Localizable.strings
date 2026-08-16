@@ -1,0 +1,128 @@
+/* ClipMouse — Русский */
+
+/* Жизненный цикл приложения */
+"Welcome to ClipMouse" = "Добро пожаловать в ClipMouse";
+"onboarding.text" = "ClipMouse собирает историю буфера обмена в значок ножниц на панели меню.\n\nmacOS один раз попросит доступ к буферу — разрешите его в Настройках системы → Конфиденциальность и безопасность → Буфер обмена (выберите «Всегда разрешать»).\n\nРазрешение Accessibility будет запрошено позже — для поиска и вставки.";
+"Open Privacy Settings…" = "Открыть настройки конфиденциальности…";
+"OK" = "OK";
+"Clipboard history was damaged" = "История буфера обмена повреждена";
+"corruption.info" = "Создана новая пустая история. Повреждённый файл сохранён рядом с базой данных как clipmouse.sqlite.corrupt-…";
+"ClipMouse failed to start" = "Не удалось запустить ClipMouse";
+
+/* Меню — История */
+"Not saved: looks like a secret (⌥ — save anyway)" = "Не сохранено: похоже на секрет (⌥ — сохранить принудительно)";
+"History is empty" = "История пуста";
+
+/* Меню — Длительности бодрствования */
+"5 min" = "5 мин";
+"10 min" = "10 мин";
+"15 min" = "15 мин";
+"30 min" = "30 мин";
+"1 hour" = "1 час";
+"2 hours" = "2 часа";
+"5 hours" = "5 часов";
+"Indefinitely" = "Бессрочно";
+
+/* Меню — Бодрствование */
+"remaining.suffix" = "%@ осталось";
+"Awake ▸" = "Бодрствование ▸";
+"Turn Off" = "Выключить";
+"KeepingYouAwake is running" = "KeepingYouAwake запущен";
+"awake.remaining" = "Бодрствование: %@ осталось";
+"Awake: indefinite" = "Бодрствование: бессрочно";
+
+/* Меню — Сниппеты */
+"Snippets ▸" = "Сниппеты ▸";
+"Add Snippet…" = "Добавить сниппет…";
+"Add Category…" = "Добавить категорию…";
+"Delete Category ▸" = "Удалить категорию ▸";
+"Delete the category and its snippets" = "Удалить категорию и все её сниппеты";
+"edit.snippet" = "Редактировать «%@»…";
+"delete.snippet" = "Удалить «%@»";
+"Hold ⌥ to edit · ⌥⇧ to delete" = "Удерживайте ⌥ для редактирования · ⌥⇧ для удаления";
+
+/* Меню — Нижняя часть */
+"Search…" = "Поиск…";
+"Settings…" = "Настройки…";
+"Quit" = "Завершить";
+"Hotkey is taken by another application" = "Горячая клавиша занята другим приложением";
+"Karabiner is running" = "Karabiner запущен";
+"Remap off: no accessibility access" = "Переназначение выключено: нет доступа к Accessibility";
+
+/* Диалоги сниппетов */
+"Add a category first." = "Сначала добавьте категорию.";
+"New Category" = "Новая категория";
+"Name:" = "Название:";
+"Category name" = "Название категории";
+"delete.category" = "Удалить категорию «%@»?";
+"delete.category.snippets" = "Будет удалено сниппетов: %d.";
+"Delete" = "Удалить";
+"Cancel" = "Отмена";
+"Add Snippet" = "Добавить сниппет";
+"Edit Snippet" = "Редактировать сниппет";
+"Title" = "Заголовок";
+"Content" = "Содержание";
+"Insert placeholder…" = "Вставить плейсхолдер…";
+
+/* Поиск */
+"Search clipboard history" = "Поиск по истории буфера обмена";
+"No clips" = "Нет записей";
+"No clips yet" = "Записей пока нет";
+"Nothing found" = "Ничего не найдено";
+"never.save.from" = "Никогда не сохранять из «%@»";
+
+/* Настройки — секции */
+"General" = "Основные";
+"History" = "История";
+"Paste" = "Вставка";
+"security.section" = "Безопасность — не сохранять буфер из:";
+"Awake" = "Бодрствование";
+
+/* Настройки — Основные */
+"Launch at Login" = "Запускать при входе";
+"Middle mouse button → right ⌘" = "Средняя кнопка мыши → правый ⌘";
+"shortcuts.hint" = "Горячие клавиши: История ⌘⇧V · Сниппеты ⌘⇧B";
+
+/* Настройки — История */
+"Keep last (10…500)" = "Хранить последних (10…500)";
+"Delete after days (1…365)" = "Удалять через дней (1…365)";
+"Show in menu (5…30)" = "Показывать в меню (5…30)";
+"Clear All History…" = "Очистить всю историю…";
+
+/* Настройки — Вставка */
+"Paste immediately after selecting (⌘V)" = "Вставлять сразу после выбора (⌘V)";
+"paste.hint" = "Без этого выбор записи только заполнит буфер обмена.";
+
+/* Настройки — Безопасность */
+"+ Add running app…" = "+ Добавить запущенное приложение…";
+"Remove from the list" = "Удалить из списка";
+
+/* Настройки — Бодрствование */
+"Icon toggle duration" = "Длительность тоггла иконки";
+"Turn off below battery % (5…100)" = "Выключать при заряде батареи ниже % (5…100)";
+
+/* Настройки — Футер и окно */
+"footer.version" = "ClipMouse %@ · zeklop";
+"ClipMouse Settings" = "Настройки ClipMouse";
+
+/* Настройки — Оповещения */
+"Launch at Login failed" = "Не удалось настроить запуск при входе";
+"login.failed.hint" = "ClipMouse должен находиться в /Applications, чтобы эта опция работала.";
+"Clear History" = "Очистить историю";
+"clear.history.confirm" = "Удалить %d записей? Резервная копия будет сохранена.";
+
+/* Вставка */
+"Press ⌘V manually" = "Нажмите ⌘V вручную";
+
+/* Права */
+"Accessibility permission is stale" = "Разрешение Accessibility устарело";
+"permissions.stale.info" = "macOS отозвал разрешение Accessibility для ClipMouse.\nНажмите «Запросить», чтобы добавить его через системный диалог, или вручную удалите и снова добавьте ClipMouse в Настройках.";
+"Request" = "Запросить";
+"Open Settings" = "Открыть настройки";
+"Later" = "Позже";
+
+/* Превью клипа */
+"image.preview" = "Изображение %d×%d · %@";
+
+/* Заголовок окна */
+"ClipMouse" = "ClipMouse";

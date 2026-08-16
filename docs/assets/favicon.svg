@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18">
+  <!-- Ножницы ClipMouse: геометрия StatusIcon.swift, кольца = режим Awake -->
+  <path d="M6.1 6 L15.6 12.3 M6.1 12 L15.6 5.7" stroke="#7a7a80" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+  <circle cx="4.3" cy="5.1" r="2.1" fill="#ff9500" stroke="#7a7a80" stroke-width="1.5"/>
+  <circle cx="4.3" cy="12.9" r="2.1" fill="#ff9500" stroke="#7a7a80" stroke-width="1.5"/>
+  <circle cx="10.6" cy="9" r="0.85" fill="#7a7a80"/>
+</svg>

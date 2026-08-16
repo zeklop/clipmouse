@@ -1,0 +1,10 @@
+.build/
+*.pem
+*.p12
+*.key
+.DS_Store
+*.app/
+.zcode/
+plans/
+AGENTS.md
+docs/github-meta.md

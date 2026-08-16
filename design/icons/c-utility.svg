@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Концепт C «Utility»: светлый тайл, ножницы почти как в менюбаре —
+       моно-линия цвета label, оранжевая заливка колец. Спокойный вариант
+       под Liquid Glass / светлый док. Геометрия 1:1 из StatusIcon.swift. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FAFAFC"/>
+      <stop offset="1" stop-color="#E5E5EE"/>
+    </linearGradient>
+    <clipPath id="squircle">
+      <rect x="0" y="0" width="1024" height="1024" rx="232"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#squircle)">
+    <rect width="1024" height="1024" fill="url(#bg)"/>
+
+    <g transform="translate(512 512) rotate(-8) scale(56) translate(-8.9 -9)"
+       stroke-linecap="round">
+      <path d="M6.1 6 L15.6 12.3 M6.1 12 L15.6 5.7"
+            fill="none" stroke="#1D1D24" stroke-width="1.5"/>
+      <circle cx="4.3" cy="5.1" r="2.1" fill="#FF9F0A" stroke="#1D1D24" stroke-width="1.5"/>
+      <circle cx="4.3" cy="12.9" r="2.1" fill="#FF9F0A" stroke="#1D1D24" stroke-width="1.5"/>
+      <circle cx="10.6" cy="9" r="0.85" fill="#1D1D24"/>
+    </g>
+  </g>
+</svg>

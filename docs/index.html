@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ClipMouse — буфер обмена, сниппеты и «не засыпать» в одной иконке</title>
+  <meta name="description" content="Нативный менеджер буфера обмена для macOS 26: история с дедупликацией, поиск как в Spotlight, сниппеты с плейсхолдерами, защита секретов и режим «не засыпать». Без сети, телеметрии и зависимостей.">
+  <meta property="og:title" content="ClipMouse — clipboard, snippets and keep-awake in one menu bar icon">
+  <meta property="og:description" content="Native macOS 26 clipboard manager: deduplicated history, Spotlight-style search, snippets, secret protection and caffeine timers. No network, no telemetry, no dependencies.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+
+  <!-- ✂ логотип: геометрия StatusIcon.swift — лезвия (6.1,6)→(15.6,12.3) и (6.1,12)→(15.6,5.7),
+       кольца r 2.1 в (4.3,5.1)/(4.3,12.9), ось r 0.85 в (10.6,9). Кольца оранжевые = режим Awake. -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <g id="scissors">
+        <path d="M6.1 6 L15.6 12.3 M6.1 12 L15.6 5.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        <circle cx="4.3" cy="5.1" r="2.1" fill="var(--accent)" stroke="currentColor" stroke-width="1.5"/>
+        <circle cx="4.3" cy="12.9" r="2.1" fill="var(--accent)" stroke="currentColor" stroke-width="1.5"/>
+        <circle cx="10.6" cy="9" r="0.85" fill="currentColor"/>
+      </g>
+    </defs>
+  </svg>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="#">
+        <svg width="21" height="21" viewBox="0 0 18 18" aria-hidden="true"><use href="#scissors"/></svg>
+        ClipMouse
+      </a>
+      <nav class="site-nav">
+        <a href="#features" data-i18n="nav_features">Возможности</a>
+        <a href="#screens" data-i18n="nav_screens">Экраны</a>
+        <a href="#privacy" data-i18n="nav_privacy">Приватность</a>
+        <a href="#install" data-i18n="nav_install">Установка</a>
+      </nav>
+      <div class="header-controls">
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button type="button" data-lang-btn="ru" aria-pressed="true">RU</button>
+          <button type="button" data-lang-btn="en" aria-pressed="false">EN</button>
+        </div>
+        <button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch theme">
+          <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3.9"/><path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4l1.5 1.5M17.1 17.1l1.5 1.5M18.6 5.4l-1.5 1.5M6.9 17.1l-1.5 1.5"/>
+          </svg>
+          <svg class="icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20.2 14.5A8.3 8.3 0 0 1 9.5 3.8a8.3 8.3 0 1 0 10.7 10.7z"/>
+          </svg>
+        </button>
+        <a class="github-link" href="https://github.com/zeklop/clipmouse">
+          GitHub
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M7 17L17 7M9 7h8v8"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-grid">
+        <div>
+          <h1 data-i18n="hero_h1">Буфер обмена, сниппеты и «не засыпать» — одна иконка в меню-баре</h1>
+          <p class="hero-sub" data-i18n="hero_sub">ClipMouse — нативный агент для macOS 26. Заменяет ClipMenu 0.4.3, правило Karabiner и KeepingYouAwake: история с дедупликацией, поиск как в Spotlight, защита секретов и таймеры кофеина. Без сети, телеметрии и зависимостей.</p>
+          <div class="hero-hints">
+            <span class="pill"><kbd>⌘⇧V</kbd> <span data-i18n="hero_h1h">история</span></span>
+            <span class="pill"><kbd>⌘⇧B</kbd> <span data-i18n="hero_h2h">сниппеты</span></span>
+            <span class="pill"><span data-i18n="hero_h3a">правый клик</span> — <span data-i18n="hero_h3b">кофеин</span></span>
+          </div>
+          <p class="hero-reqs" data-i18n="hero_reqs">macOS 26+ · Apple Silicon · 0 зависимостей</p>
+          <div class="hero-cta">
+            <a class="btn btn-primary" href="https://github.com/zeklop/clipmouse" data-i18n="hero_gh">Открыть GitHub</a>
+            <a class="btn btn-ghost" href="#install" data-i18n="hero_install">Установка</a>
+          </div>
+        </div>
+        <div class="hero-visual">
+          <div class="shot shot-xl">
+            <img src="assets/menu.png" data-light-src="assets/menu-light.png" alt="ClipMouse — history menu dropdown with Awake countdown" onerror="this.parentElement.classList.add('no-shot')">
+            <div class="shot-placeholder"><svg width="22" height="22" viewBox="0 0 18 18" aria-hidden="true"><use href="#scissors"/></svg><span data-i18n="ph_shot">Скриншот появится здесь</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="features">
+      <div class="container">
+        <div class="section-head">
+          <h2 data-i18n="feat_title">Возможности</h2>
+          <p class="section-sub" data-i18n="feat_sub">Всё, что раньше делали три утилиты, — в одном нативном приложении.</p>
+        </div>
+        <div class="features-grid">
+          <div class="feature">
+            <div class="feature-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M12 7.6V12l3.2 1.8"/></svg></div>
+            <h3 data-i18n="f1t">История буфера</h3>
+            <p data-i18n="f1d">Текст, ссылки, картинки, PDF и файлы — до 200 записей (настраивается до 500). Повторы схлопываются, хранение — 30 дней.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.3"/><path d="M15.4 15.4L19.6 19.6"/></svg></div>
+            <h3 data-i18n="f2t">Поиск как в Spotlight</h3>
+            <p data-i18n="f2d">Панель с фильтром по содержимому и по приложению-источнику: запрос «Telegram» покажет всё, что вы копировали из Telegram. Правый клик по клипу — удалить или заблокировать источник.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6.5" y="4.5" width="11" height="16" rx="2"/><rect x="9.3" y="2.8" width="5.4" height="3.4" rx="1.2"/><path d="M9.6 13.2l1.8 1.8 3.2-3.6"/></svg></div>
+            <h3 data-i18n="f3t">Умная вставка</h3>
+            <p data-i18n="f3d">⌥ вставляет чистым текстом, ⌘ — POSIX-путём. Автовставка через синтетический ⌘V опциональна и по умолчанию выключена.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.2 10.2V5.4a1.2 1.2 0 0 1 1.2-1.2H10l9.4 9.4-6 6L4.2 12.6z"/><circle cx="8.2" cy="8.2" r="1.15"/></svg></div>
+            <h3 data-i18n="f4t">Сниппеты</h3>
+            <p><span data-i18n="f4d">Категории и управление прямо в меню. Плейсхолдеры</span> <code>{date:HH:mm}</code>, <code>{clipboard}</code> <span data-i18n="f4d2">и</span> <code>{uuid}</code> <span data-i18n="f4d3">разворачиваются при вставке.</span></p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2l7 2.9v5.2c0 4.4-2.9 7.9-7 9.7-4.1-1.8-7-5.3-7-9.7V6.1z"/><path d="M9.1 11.6l2.2 2.2 3.9-4.2"/></svg></div>
+            <h3 data-i18n="f5t">Защита секретов</h3>
+            <p data-i18n="f5d">Токены (sk-, ghp_, PEM), номера карт и высокоэнтропийные строки не сохраняются; Bitwarden, Passwords и Terminal — в чёрном списке из коробки. ⌥ сохранит принудительно.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3.9"/><path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4l1.5 1.5M17.1 17.1l1.5 1.5M18.6 5.4l-1.5 1.5M6.9 17.1l-1.5 1.5"/></svg></div>
+            <h3 data-i18n="f6t">Режим «не засыпать»</h3>
+            <p data-i18n="f6d">Правый клик по иконке — и Mac бодр час: таймеры от 5 минут до бесконечности, порог батареи, остаток виден в оранжевых кольцах. Скриптам — clipmouse://caffeine/activate?seconds=N.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><rect x="7.2" y="3" width="9.6" height="18" rx="4.8"/><path d="M12 3v4.6"/></svg></div>
+            <h3 data-i18n="f7t">Средняя кнопка → правый ⌘</h3>
+            <p data-i18n="f7d">Средняя кнопка мыши становится правой Command — для голосового ввода в Spokenly. Watchdog ловит залипание модификатора, окно подавления не пускает диктовки в историю. Карта живёт здесь, а не в Karabiner.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.6 8.2L4.8 12l3.8 3.8M15.4 8.2L19.2 12l-3.8 3.8"/></svg></div>
+            <h3 data-i18n="f8t">Нативный и лёгкий</h3>
+            <p data-i18n="f8d">Чистый AppKit на Swift 6, ноль сторонних зависимостей, SQLite в WAL, автозапуск. Собственный сертификат — права переживают пересборки. В простое — около 0 % CPU.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="screens">
+      <div class="container">
+        <div class="section-head">
+          <h2 data-i18n="scr_title">Экраны</h2>
+          <p class="section-sub" data-i18n="scr_sub">Настоящий интерфейс приложения — без графической выдумки.</p>
+        </div>
+
+        <div class="screen-row">
+          <div class="mock-col">
+            <div class="shot">
+              <img src="assets/search.png" alt="ClipMouse — search panel" loading="lazy" onerror="this.parentElement.classList.add('no-shot')">
+              <div class="shot-placeholder"><svg width="22" height="22" viewBox="0 0 18 18" aria-hidden="true"><use href="#scissors"/></svg><span data-i18n="ph_shot">Скриншот появится здесь</span></div>
+            </div>
+          </div>
+          <div class="screen-text">
+            <h3 data-i18n="s1t">Меню истории</h3>
+            <p data-i18n="s1d">Пустой запрос — вся история целиком (в меню бара — только последние 10): содержимое, приложение-источник и время каждого клипа. ⏎ — вставить, ⌥ — чистым текстом, ⌘ — POSIX-путём.</p>
+          </div>
+        </div>
+
+        <div class="screen-row flip">
+          <div class="mock-col">
+            <div class="shot">
+              <img src="assets/settings.png" alt="ClipMouse — settings window" loading="lazy" onerror="this.parentElement.classList.add('no-shot')">
+              <div class="shot-placeholder"><svg width="22" height="22" viewBox="0 0 18 18" aria-hidden="true"><use href="#scissors"/></svg><span data-i18n="ph_shot">Скриншот появится здесь</span></div>
+            </div>
+          </div>
+          <div class="screen-text">
+            <h3 data-i18n="s2t">Настройки</h3>
+            <p data-i18n="s2d">Одно окно без вкладок: автозапуск, лимиты и срок истории, автовставка, чёрный список приложений и таймеры Awake. В футере — версия и автор.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="privacy-band" id="privacy">
+      <div class="container">
+        <div class="section-head">
+          <h2 data-i18n="priv_title">История не покидает ваш Mac</h2>
+          <p class="section-sub privacy-lead" data-i18n-html="priv_lead">ClipMouse не ходит в сеть — <strong>вообще</strong>. Ни телеметрии, ни аналитики, ни «домашних» обновлений: считать нечего, счётчиков нет.</p>
+        </div>
+        <div class="stats">
+          <div class="stat"><span class="stat-num" data-i18n="st1n">1,3 МБ</span><span class="stat-cap" data-i18n="st1c">на диске</span></div>
+          <div class="stat"><span class="stat-num" data-i18n="st2n">≈20 МБ</span><span class="stat-cap" data-i18n="st2c">в памяти</span></div>
+          <div class="stat"><span class="stat-num" data-i18n="st3n">0,0 %</span><span class="stat-cap" data-i18n="st3c">CPU в простое</span></div>
+          <div class="stat"><span class="stat-num" data-i18n="st4n">0</span><span class="stat-cap" data-i18n="st4c">сторонних зависимостей</span></div>
+        </div>
+        <p class="stats-note" data-i18n="priv_note">Замерено на живом процессе, а не обещано на слово.</p>
+        <div class="privacy-grid">
+          <div class="privacy-item">
+            <div class="feature-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5.4" y="10.4" width="13.2" height="9.6" rx="2.2"/><path d="M8.4 10.4V7.8a3.6 3.6 0 0 1 7.2 0v2.6"/></svg></div>
+            <h3 data-i18n="p1t">БД с правами 0600</h3>
+            <p data-i18n="p1d">SQLite лежит в ~/Library/Application Support: файл 0600, каталог 0700, исключён из бэкапов.</p>
+          </div>
+          <div class="privacy-item">
+            <div class="feature-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.6 12s3.3-5.8 8.4-5.8 8.4 5.8 8.4 5.8-3.3 5.8-8.4 5.8S3.6 12 3.6 12z"/><path d="M5 19L19 5"/></svg></div>
+            <h3 data-i18n="p2t">Скрытое не читается</h3>
+            <p data-i18n="p2d">Типы пастборда Concealed, Transient и AutoGenerated пропускаются — менеджеры паролей помечают копирование сами.</p>
+          </div>
+          <div class="privacy-item">
+            <div class="feature-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M6.4 6.4l11.2 11.2"/></svg></div>
+            <h3 data-i18n="p3t">Чёрный список</h3>
+            <p data-i18n="p3d">Bitwarden, Passwords и Terminal заблокированы по умолчанию; правый клик по клипу — Never save from этого приложения.</p>
+          </div>
+          <div class="privacy-item">
+            <div class="feature-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v9M8.6 9.8L12 13.2l3.4-3.4"/><path d="M4.6 15.4V18a1.8 1.8 0 0 0 1.8 1.8h11.2a1.8 1.8 0 0 0 1.8-1.8v-2.6"/></svg></div>
+            <h3 data-i18n="p4t">Дамп перед очисткой</h3>
+            <p data-i18n="p4d">Clear History сначала пишет резервный дамп — случайная очистка ничего не теряет.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="install">
+      <div class="container">
+        <div class="section-head">
+          <h2 data-i18n="inst_title">Установка из исходников</h2>
+          <p class="section-sub" data-i18n="inst_sub">Готовых сборок пока нет — ClipMouse собирается одной командой из репозитория. Фазы 0–6 реализованы, идёт наблюдательная неделя.</p>
+        </div>
+        <div class="install-grid">
+          <div>
+            <div class="step">
+              <div class="step-num">1</div>
+              <div>
+                <h3 data-i18n="ist1t">Клонируйте репозиторий</h3>
+                <p data-i18n="ist1d">Понадобятся Command Line Tools для Swift 6 — Xcode не нужен.</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">2</div>
+              <div>
+                <h3 data-i18n="ist2t">make install</h3>
+                <p data-i18n="ist2d">Соберёт release-сборку, сгенерирует иконку icns, подпишет (свой сертификат подхватится сам) и скопирует в /Applications.</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">3</div>
+              <div>
+                <h3 data-i18n="ist3t">Разрешения при первом запуске</h3>
+                <p data-i18n="ist3d">Разрешите доступ к буферу обмена и выдайте Accessibility — приложение само подскажет, где нажать.</p>
+              </div>
+            </div>
+          </div>
+          <div class="terminal">
+            <div class="term-bar">
+              <span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span>
+              <span class="term-title">zsh — clipmouse</span>
+            </div>
+            <div class="term-body">
+              <div class="term-line"><span class="term-prompt">$</span> git clone https://github.com/zeklop/clipmouse.git</div>
+              <div class="term-line"><span class="term-prompt">$</span> cd clipmouse</div>
+              <div class="term-line"><span class="term-prompt">$</span> make install</div>
+              <div class="term-line term-comment"># build → bundle → sign → /Applications</div>
+              <div class="term-line"><span class="term-prompt">$</span> make check</div>
+              <div class="term-line"><span class="term-ok">✓ selftest: 32/32</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span data-i18n="foot_left">ClipMouse 0.1.0 — преемник ClipMenu 0.4.3</span>
+      <a href="https://github.com/zeklop/clipmouse">GitHub</a>
+      <span data-i18n="foot_right">zeklop · Swift 6 · AppKit · 2026</span>
+    </div>
+  </footer>
+
+</body>
+</html>
