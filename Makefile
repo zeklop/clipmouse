@@ -15,7 +15,11 @@ endif
 BUILD_LOG := .build/build.log
 RELEASE_LOG := .build/build-release.log
 
-.PHONY: build build-release bundle sign install selftest check clean
+# VERSION строго до DMG: := разворачивается в момент объявления
+VERSION := $(shell grep -A1 CFBundleShortVersionString Resources/Info.plist | tail -1 | sed 's/.*<string>//;s/<.*//')
+DMG := .build/ClipMouse-$(VERSION).dmg
+
+.PHONY: build build-release bundle sign install dmg selftest check clean
 
 # Ворнинги = провал сборки (§3). pipefail нужен, чтобы провал swift build
 # не съедался tee в конце конвейера.
@@ -61,6 +65,21 @@ install: sign
 	@cp -R $(APP) /Applications/
 	@echo "Установлено: /Applications/$(APP)"
 
+# DMG для дистрибуции (GitHub Releases / Homebrew Cask).
+# Классическая раскладка: копия .app + симлинк на /Applications —
+# пользователь перетаскивает приложение на symlink. Симлинки вместо
+# копии самого .app недостаточно: hdiutil запакует ссылку, не бандл.
+dmg: sign
+	@mkdir -p .build/dmg-staging
+	@rm -rf .build/dmg-staging/$(APP) .build/dmg-staging/Applications
+	@cp -R $(APP) .build/dmg-staging/$(APP)
+	@ln -s /Applications .build/dmg-staging/Applications
+	@rm -f $(DMG)
+	@hdiutil create -volname ClipMouse -srcfolder .build/dmg-staging \
+		-ov -fs HFS+ -format UDZO $(DMG)
+	@rm -rf .build/dmg-staging
+	@echo "DMG: $(DMG) ($$(du -h $(DMG) | cut -f1))"
+
 selftest: build
 	@./.build/debug/ClipMouse --selftest
 
@@ -76,4 +95,4 @@ check: build
 	@$(MAKE) selftest
 
 clean:
-	@rm -rf .build $(APP)
+	@rm -rf .build $(APP) $(DMG)

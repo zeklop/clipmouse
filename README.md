@@ -89,7 +89,7 @@ make check     # debug + release + selftest; warnings fail the build
 
 1. **Clone the repository.** You will need the Command Line Tools for Swift 6 — Xcode is not required.
 2. **`make install`** builds a release binary, generates the icns, signs it (a personal certificate is auto-detected) and copies it to `/Applications`.
-3. **Permissions on first launch** — allow clipboard access and grant Accessibility; the app walks you to the right screens.
+3. **Permissions on first launch** — a one-time setup of two toggles: [First-launch permissions](docs/permissions.md).
 4. **Optional: keep Accessibility across rebuilds.** With the default adhoc signature every rebuild resets the Accessibility permission. Create a personal certificate once: `bash scripts/make-cert.sh`, then follow [docs/codesign-and-tcc.md](docs/codesign-and-tcc.md) — rebuilds stop resetting permissions.
 
 Diagnostic flags of the binary: `--selftest`, `--paste-test` (posts a synthetic ⌘V to the frontmost app), `--spike-right-cmd`.
