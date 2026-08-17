@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="320" viewBox="0 0 900 320">
+  <!-- Сравнение цвета заливки колец при Awake. Размер колец утверждён: r=2.55, cx=4.6.
+       Геометрия остального — StatusIcon.swift. Ряд 1 — светлая тема, ряд 2 — тёмная. -->
+  <style>
+    text { font-family: -apple-system, 'Helvetica Neue', sans-serif; }
+    .cap { font-size: 13px; fill: #86868b; text-anchor: middle; }
+  </style>
+
+  <rect x="0" y="0" width="900" height="160" fill="#ECECF1"/>
+  <rect x="0" y="160" width="900" height="160" fill="#2A2A31"/>
+
+  <!-- ================= РЯД 1: светлый, ink #1D1D24 ================= -->
+
+  <!-- 1. сейчас — оранжевый, r=2.1 -->
+  <g transform="translate(60 26) scale(6)" stroke="#1D1D24" stroke-width="1.5" stroke-linecap="round">
+    <path d="M6.1 6 L15.6 12.3 M6.1 12 L15.6 5.7" fill="none"/>
+    <circle cx="4.3" cy="5.1" r="2.1" fill="#FF9F0A"/>
+    <circle cx="4.3" cy="12.9" r="2.1" fill="#FF9F0A"/>
+    <circle cx="10.6" cy="9" r="0.85" fill="#1D1D24" stroke="none"/>
+  </g>
+
+  <!-- 2. r=2.55 — оранжевый #FF9F0A -->
+  <g transform="translate(270 26) scale(6)" stroke="#1D1D24" stroke-width="1.5" stroke-linecap="round">
+    <path d="M6.1 6 L15.6 12.3 M6.1 12 L15.6 5.7" fill="none"/>
+    <circle cx="4.6" cy="5.1" r="2.55" fill="#FF9F0A"/>
+    <circle cx="4.6" cy="12.9" r="2.55" fill="#FF9F0A"/>
+    <circle cx="10.6" cy="9" r="0.85" fill="#1D1D24" stroke="none"/>
+  </g>
+
+  <!-- 3. r=2.55 — системный зелёный #30D158 -->
+  <g transform="translate(480 26) scale(6)" stroke="#1D1D24" stroke-width="1.5" stroke-linecap="round">
+    <path d="M6.1 6 L15.6 12.3 M6.1 12 L15.6 5.7" fill="none"/>
+    <circle cx="4.6" cy="5.1" r="2.55" fill="#30D158"/>
+    <circle cx="4.6" cy="12.9" r="2.55" fill="#30D158"/>
+    <circle cx="10.6" cy="9" r="0.85" fill="#1D1D24" stroke="none"/>
+  </g>
+
+  <!-- 4. r=2.55 — ярко-салатовый #BFFF00 -->
+  <g transform="translate(690 26) scale(6)" stroke="#1D1D24" stroke-width="1.5" stroke-linecap="round">
+    <path d="M6.1 6 L15.6 12.3 M6.1 12 L15.6 5.7" fill="none"/>
+    <circle cx="4.6" cy="5.1" r="2.55" fill="#BFFF00"/>
+    <circle cx="4.6" cy="12.9" r="2.55" fill="#BFFF00"/>
+    <circle cx="10.6" cy="9" r="0.85" fill="#1D1D24" stroke="none"/>
+  </g>
+
+  <!-- ================= РЯД 2: тёмный, ink #F2F2F7 ================= -->
+
+  <g transform="translate(60 186) scale(6)" stroke="#F2F2F7" stroke-width="1.5" stroke-linecap="round">
+    <path d="M6.1 6 L15.6 12.3 M6.1 12 L15.6 5.7" fill="none"/>
+    <circle cx="4.3" cy="5.1" r="2.1" fill="#FF9F0A"/>
+    <circle cx="4.3" cy="12.9" r="2.1" fill="#FF9F0A"/>
+    <circle cx="10.6" cy="9" r="0.85" fill="#F2F2F7" stroke="none"/>
+  </g>
+
+  <g transform="translate(270 186) scale(6)" stroke="#F2F2F7" stroke-width="1.5" stroke-linecap="round">
+    <path d="M6.1 6 L15.6 12.3 M6.1 12 L15.6 5.7" fill="none"/>
+    <circle cx="4.6" cy="5.1" r="2.55" fill="#FF9F0A"/>
+    <circle cx="4.6" cy="12.9" r="2.55" fill="#FF9F0A"/>
+    <circle cx="10.6" cy="9" r="0.85" fill="#F2F2F7" stroke="none"/>
+  </g>
+
+  <g transform="translate(480 186) scale(6)" stroke="#F2F2F7" stroke-width="1.5" stroke-linecap="round">
+    <path d="M6.1 6 L15.6 12.3 M6.1 12 L15.6 5.7" fill="none"/>
+    <circle cx="4.6" cy="5.1" r="2.55" fill="#30D158"/>
+    <circle cx="4.6" cy="12.9" r="2.55" fill="#30D158"/>
+    <circle cx="10.6" cy="9" r="0.85" fill="#F2F2F7" stroke="none"/>
+  </g>
+
+  <g transform="translate(690 186) scale(6)" stroke="#F2F2F7" stroke-width="1.5" stroke-linecap="round">
+    <path d="M6.1 6 L15.6 12.3 M6.1 12 L15.6 5.7" fill="none"/>
+    <circle cx="4.6" cy="5.1" r="2.55" fill="#BFFF00"/>
+    <circle cx="4.6" cy="12.9" r="2.55" fill="#BFFF00"/>
+    <circle cx="10.6" cy="9" r="0.85" fill="#F2F2F7" stroke="none"/>
+  </g>
+
+  <!-- подписи -->
+  <text class="cap" x="114" y="148">сейчас: оранж., r 2.1</text>
+  <text class="cap" x="324" y="148">оранжевый, r 2.55</text>
+  <text class="cap" x="534" y="148">зелёный, r 2.55</text>
+  <text class="cap" x="744" y="148">салатовый, r 2.55</text>
+  <text class="cap" x="114" y="308" fill="#77777f">сейчас: оранж., r 2.1</text>
+  <text class="cap" x="324" y="308" fill="#77777f">оранжевый, r 2.55</text>
+  <text class="cap" x="534" y="308" fill="#77777f">зелёный, r 2.55</text>
+  <text class="cap" x="744" y="308" fill="#77777f">салатовый, r 2.55</text>
+</svg>
