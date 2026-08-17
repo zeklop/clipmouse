@@ -48,8 +48,8 @@ blades.stroke()
 
 // Кольца: заливка оранжевая, обводка моно
 for cy in [5.1, 12.9] {
-    let c = pt(4.3, cy)
-    let r = 2.1 * scale
+    let c = pt(4.6, cy)
+    let r = 2.55 * scale
     let ring = NSBezierPath(ovalIn: NSRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2))
     orange.setFill()
     ring.fill()

@@ -1,6 +1,6 @@
 cask "clipmouse" do
   version "0.1.0"
-  sha256 "PLACEHOLDER"
+  sha256 "d7510421aa236b74139fdc16b3c9d068375df19079c2baac51552ca3edd3c2ab"
 
   url "https://github.com/zeklop/clipmouse/releases/download/v#{version}/ClipMouse-#{version}.dmg"
   name "ClipMouse"

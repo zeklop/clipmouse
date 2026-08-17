@@ -18,9 +18,11 @@ enum StatusIcon {
             blades.line(to: NSPoint(x: 15.6, y: 5.7))
             blades.stroke()
 
-            // Кольца: заливка systemOrange при активном Awake, иначе пусто
+            // Кольца: заливка systemOrange при активном Awake, иначе пусто.
+            // Утверждено 17.08.2026: r 2.55 в (4.6, cy) — крупнее заметнее,
+            // но левая граница (1.3) даже компактнее прежней (1.45), ширина не растёт
             for cy in [5.1, 12.9] {
-                let ring = NSBezierPath(ovalIn: NSRect(x: 4.3 - 2.1, y: cy - 2.1, width: 4.2, height: 4.2))
+                let ring = NSBezierPath(ovalIn: NSRect(x: 4.6 - 2.55, y: cy - 2.55, width: 5.1, height: 5.1))
                 if awake {
                     NSColor.systemOrange.setFill()
                     ring.fill()

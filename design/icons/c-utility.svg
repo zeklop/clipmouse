@@ -19,8 +19,8 @@
        stroke-linecap="round">
       <path d="M6.1 6 L15.6 12.3 M6.1 12 L15.6 5.7"
             fill="none" stroke="#1D1D24" stroke-width="1.5"/>
-      <circle cx="4.3" cy="5.1" r="2.1" fill="#FF9F0A" stroke="#1D1D24" stroke-width="1.5"/>
-      <circle cx="4.3" cy="12.9" r="2.1" fill="#FF9F0A" stroke="#1D1D24" stroke-width="1.5"/>
+      <circle cx="4.6" cy="5.1" r="2.55" fill="#FF9F0A" stroke="#1D1D24" stroke-width="1.5"/>
+      <circle cx="4.6" cy="12.9" r="2.55" fill="#FF9F0A" stroke="#1D1D24" stroke-width="1.5"/>
       <circle cx="10.6" cy="9" r="0.85" fill="#1D1D24"/>
     </g>
   </g>
