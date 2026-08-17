@@ -92,7 +92,8 @@ public final class MenuBuilder: NSObject {
     // MARK: - Awake (§9 Фаза 5, §8.2)
 
     /// Таймеры 5/10/15/30 мин, 1/2/5 ч, Indefinitely, Turn Off — дубль
-    /// тумблера из §8.1. Обратный отсчёт — в заголовке пункта.
+    /// тумблера из §8.1. Обратный отсчёт — в заголовке пункта; пока меню
+    /// открыто, тикает живьём (startAwakeTick).
     private func addAwakeSection(to menu: NSMenu) {
         guard let awake else { return } // Фаза 5 срезана — секции нет
 
@@ -113,6 +114,10 @@ public final class MenuBuilder: NSObject {
         }
 
         let root = NSMenuItem(title: String(localized: "Awake ▸") + suffix, action: nil, keyEquivalent: "")
+        // Активный awake подсвечивается системным оранжевым (#FF9F0A — палитра колец)
+        if awake.isActive {
+            root.attributedTitle = Self.awakeTitle(String(localized: "Awake ▸") + suffix)
+        }
         let sub = NSMenu()
         for (title, seconds) in durations {
             let item = NSMenuItem(title: title, action: #selector(awakeDuration(_:)),
@@ -128,6 +133,10 @@ public final class MenuBuilder: NSObject {
         sub.addItem(off)
         menu.setSubmenu(sub, for: root)
         menu.addItem(root)
+        // Живой отсчёт, пока меню открыто (бессрочный режим — только подсветка)
+        if awake.isActive, awake.remaining() != nil {
+            startAwakeTick(root: root, menu: menu)
+        }
 
         // два ассерта: выключение в ClipMouse не снимет чужой (§9 Фаза 5)
         if !NSRunningApplication.runningApplications(
@@ -146,6 +155,65 @@ public final class MenuBuilder: NSObject {
 
     @objc private func awakeOff() {
         awake?.disable()
+    }
+
+    // MARK: Живой отсчёт Awake в открытом меню
+
+    private var awakeTickTimer: DispatchSourceTimer?
+    private var awakeTickObserver: NSObjectProtocol?
+
+    /// Оранжевый моноширинно-цифровой тайтл: «10:00 → 9:59» без дёргания ширины.
+    private static func awakeTitle(_ text: String) -> NSAttributedString {
+        NSAttributedString(string: text, attributes: [
+            .foregroundColor: NSColor.systemOrange,
+            .font: NSFont.monospacedDigitSystemFont(ofSize: NSFont.menuFont(ofSize: 0).pointSize,
+                                                     weight: .regular),
+        ])
+    }
+
+    /// DispatchSourceTimer на main queue: обычный Timer замирает в tracking-режиме
+    /// run loop (AGENTS.md), этот — нет. Паттерн как в AwakeController.startPolling.
+    private func startAwakeTick(root: NSMenuItem, menu: NSMenu) {
+        stopAwakeTick()
+        let t = DispatchSource.makeTimerSource(queue: .main)
+        t.schedule(deadline: .now() + 1, repeating: 1)
+        t.setEventHandler { [weak self, weak root] in
+            MainActor.assumeIsolated { self?.awakeTick(root: root) }
+        }
+        t.resume()
+        awakeTickTimer = t
+        awakeTickObserver = NotificationCenter.default.addObserver(
+            forName: NSMenu.didEndTrackingNotification, object: menu, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.stopAwakeTick() }
+        }
+    }
+
+    private func stopAwakeTick() {
+        awakeTickTimer?.cancel()
+        awakeTickTimer = nil
+        if let awakeTickObserver {
+            NotificationCenter.default.removeObserver(awakeTickObserver)
+            self.awakeTickObserver = nil
+        }
+    }
+
+    private func awakeTick(root: NSMenuItem?) {
+        let base = String(localized: "Awake ▸")
+        // Выключили извне (батарея/таймаут PM) — вернуть обычный тайтл
+        guard let awake, awake.isActive else {
+            root?.title = base
+            stopAwakeTick()
+            return
+        }
+        guard let rem = awake.remaining() else { return } // бессрочный — тик не должен работать
+        if rem.seconds <= 0 {
+            // Состояние синхронизирует AwakeController.periodicCheck
+            root?.title = base
+            stopAwakeTick()
+            return
+        }
+        let suffix = "   " + String(format: String(localized: "remaining.suffix"), rem.label)
+        root?.attributedTitle = Self.awakeTitle(base + suffix)
     }
 
     /// Секция сниппетов (ревизия 8): `Snippets ▸` — меню управления
