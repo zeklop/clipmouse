@@ -1,4 +1,5 @@
 import Foundation
+import SQLite3
 
 /// Режим --selftest: чистые функции и миграции на временной БД.
 /// XCTest и swift-testing в среде CLT недоступны (замерено, §1),
@@ -37,6 +38,14 @@ public enum SelfTest {
                ClipboardIO.normalizedPreview("a \n\t b   c") == "a b c")
         expect("превью: потолок 200 символов",
                ClipboardIO.normalizedPreview(String(repeating: "x", count: 500)).count <= 201)
+
+        // MARK: Превью богатых типов (ревизия 12)
+        expect("превью rtf: текст вместо ярлыка",
+               ClipboardIO.richPreview(kind: .rtf, text: "a \n b", blob: Data(count: 10)) == "a b")
+        expect("превью rtf: без текста — байтовый ярлык",
+               ClipboardIO.richPreview(kind: .rtf, text: nil, blob: Data(count: 10)).hasPrefix("RTF ·"))
+        expect("превью rtfd: пустой текст — байтовый ярлык",
+               ClipboardIO.richPreview(kind: .rtfd, text: "", blob: Data(count: 3)).hasPrefix("RTFD ·"))
 
         // MARK: Эвристики секретов (§12)
         expect("секрет: путь — НЕ секрет", SecretHeuristics.check("/Users/example/dev/clipmenu") == nil)
@@ -109,6 +118,26 @@ public enum SelfTest {
             expect("ретеншен: pinned не трогается", afterPinned.contains { $0.text == "важный" })
 
             expect("clearAll: возвращает число удалённых", (try await store.clearAll()) >= 3)
+
+            // MARK: миграция v2 (ревизия 12): лечение превью rtf
+            let migPath = dir + "/mig.sqlite"
+            var mig: OpaquePointer?
+            sqlite3_open(migPath, &mig)
+            sqlite3_exec(mig, """
+            CREATE TABLE clips (id INTEGER PRIMARY KEY AUTOINCREMENT, hash TEXT NOT NULL UNIQUE,
+              kind TEXT NOT NULL, preview TEXT NOT NULL, text TEXT, blob BLOB, source_bundle TEXT,
+              created_at REAL NOT NULL, last_used_at REAL NOT NULL, pinned INTEGER NOT NULL DEFAULT 0);
+            CREATE TABLE folders (id INTEGER PRIMARY KEY, title TEXT NOT NULL, position INTEGER NOT NULL);
+            CREATE TABLE snippets (id INTEGER PRIMARY KEY, folder_id INTEGER NOT NULL,
+              title TEXT NOT NULL, content TEXT NOT NULL, position INTEGER NOT NULL);
+            INSERT INTO clips (hash,kind,preview,text,created_at,last_used_at)
+              VALUES ('h1','rtf','RTF · 360 bytes','залеченный текст',1,1);
+            PRAGMA user_version=1;
+            """, nil, nil, nil)
+            sqlite3_close(mig)
+            let migStore = try ClipStore(path: migPath)
+            let healed = try await migStore.recent(limit: 1)
+            expect("миграция: rtf-превью заменено текстом", healed.first?.preview == "залеченный текст")
 
             // MARK: восстановление после повреждения
             let corruptPath = dir + "/corrupt.sqlite"

@@ -102,26 +102,57 @@ public actor ClipStore {
 
     private static func migrate(_ db: OpaquePointer?) throws {
         let v = try userVersion(db)
-        guard v < 1 else { return }
-        try exec(db, """
-        CREATE TABLE clips (
-          id            INTEGER PRIMARY KEY AUTOINCREMENT,
-          hash          TEXT    NOT NULL UNIQUE,
-          kind          TEXT    NOT NULL,
-          preview       TEXT    NOT NULL,
-          text          TEXT,
-          blob          BLOB,
-          source_bundle TEXT,
-          created_at    REAL    NOT NULL,
-          last_used_at  REAL    NOT NULL,
-          pinned        INTEGER NOT NULL DEFAULT 0
-        );
-        CREATE INDEX idx_clips_recent ON clips(pinned DESC, last_used_at DESC);
-        CREATE TABLE folders  (id INTEGER PRIMARY KEY, title TEXT NOT NULL, position INTEGER NOT NULL);
-        CREATE TABLE snippets (id INTEGER PRIMARY KEY, folder_id INTEGER NOT NULL,
-                               title TEXT NOT NULL, content TEXT NOT NULL, position INTEGER NOT NULL);
+        if v < 1 {
+            try exec(db, """
+            CREATE TABLE clips (
+              id            INTEGER PRIMARY KEY AUTOINCREMENT,
+              hash          TEXT    NOT NULL UNIQUE,
+              kind          TEXT    NOT NULL,
+              preview       TEXT    NOT NULL,
+              text          TEXT,
+              blob          BLOB,
+              source_bundle TEXT,
+              created_at    REAL    NOT NULL,
+              last_used_at  REAL    NOT NULL,
+              pinned        INTEGER NOT NULL DEFAULT 0
+            );
+            CREATE INDEX idx_clips_recent ON clips(pinned DESC, last_used_at DESC);
+            CREATE TABLE folders  (id INTEGER PRIMARY KEY, title TEXT NOT NULL, position INTEGER NOT NULL);
+            CREATE TABLE snippets (id INTEGER PRIMARY KEY, folder_id INTEGER NOT NULL,
+                                   title TEXT NOT NULL, content TEXT NOT NULL, position INTEGER NOT NULL);
+            """)
+            try exec(db, "PRAGMA user_version=1;")
+        }
+        if v < 2 {
+            try healRichPreviews(db)
+            try exec(db, "PRAGMA user_version=2;")
+        }
+    }
+
+    /// Ревизия 12: rtf/rtfd-клипы сохраняли в preview байтовый ярлык
+    /// («RTF · N bytes»), хотя буфер отдавал и plain text. Заменяем ярлык
+    /// нормализованным текстом, чтобы история показывала содержимое.
+    private static func healRichPreviews(_ db: OpaquePointer?) throws {
+        let stmt = try prepare(db, """
+        SELECT id, text FROM clips
+        WHERE kind IN ('rtf','rtfd') AND text IS NOT NULL AND text != '';
         """)
-        try exec(db, "PRAGMA user_version=1;")
+        defer { sqlite3_finalize(stmt) }
+        var rows: [(Int64, String)] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            guard let t = sqlite3_column_text(stmt, 1) else { continue }
+            rows.append((sqlite3_column_int64(stmt, 0), String(cString: t)))
+        }
+        for (id, text) in rows {
+            let preview = ClipboardIO.normalizedPreview(text)
+            let upd = try prepare(db, """
+            UPDATE clips SET preview = ?1 WHERE id = ?2 AND preview != ?1;
+            """)
+            sqlite3_bind_text(upd, 1, preview, -1, SQLITE_TRANSIENT)
+            sqlite3_bind_int64(upd, 2, id)
+            _ = sqlite3_step(upd)
+            sqlite3_finalize(upd)
+        }
     }
 
     private static func userVersion(_ db: OpaquePointer?) throws -> Int {

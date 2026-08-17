@@ -106,11 +106,11 @@ enum ClipboardIO {
             if types.contains(type),
                let data = pb.data(forType: type), !data.isEmpty,
                data.count <= prefs.historyMaxBlobBytes {
-                let text = pb.string(forType: .string)
+                let raw = pb.string(forType: .string)
+                let text = (raw?.utf8.count ?? 0) <= prefs.historyMaxClipTextBytes ? raw : nil
                 return Clip(kind: kind, hash: sha256Hex(data),
-                            preview: binaryPreview(kind: kind, blob: data),
-                            text: (text?.utf8.count ?? 0) <= prefs.historyMaxClipTextBytes ? text : nil,
-                            blob: data, sourceBundle: nil, createdAt: now, lastUsedAt: now)
+                            preview: richPreview(kind: kind, text: text, blob: data),
+                            text: text, blob: data, sourceBundle: nil, createdAt: now, lastUsedAt: now)
             }
         }
 
@@ -123,6 +123,15 @@ enum ClipboardIO {
         }
 
         return nil
+    }
+
+    /// Превью богатых типов (ревизия 12): если буфер отдаёт и plain text,
+    /// меню показывает содержимое, а не байтовый ярлык; kind остаётся
+    /// богатым, чтобы вставка сохраняла форматирование. Ярлык — только
+    /// чисто бинарным клипам (картинка/PDF/RTF без текста).
+    static func richPreview(kind: Clip.Kind, text: String?, blob: Data) -> String {
+        if let text, !text.isEmpty { return normalizedPreview(text) }
+        return binaryPreview(kind: kind, blob: blob)
     }
 
     private static func binaryPreview(kind: Clip.Kind, blob: Data) -> String {
