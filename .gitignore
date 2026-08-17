@@ -1,11 +1,21 @@
+# --- сборка и артефакты ---
 .build/
+*.app/
 *.pem
 *.p12
 *.key
 .DS_Store
-*.app/
-.zcode/
+
+# --- внутреннее, не для GitHub (см. AGENTS.md → «Публичное vs внутреннее») ---
+# internal/ — конкурентный анализ, снимки ТЗ, SEO-заготовки
+# plans/    — ТЗ, блокеры, сигналы человека
+# .firecrawl/ — сырьё веб-скрейпинга конкурентов
+# AGENTS.md — конфиг агента
+internal/
 plans/
-AGENTS.md
-docs/github-meta.md
 .firecrawl/
+AGENTS.md
+
+# --- локальные конфиги IDE-агентов ---
+.zcode/
+.qoder/
