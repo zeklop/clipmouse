@@ -191,4 +191,4 @@ English and Russian — the UI follows your system language (System Settings →
 
 Phases 0–6 implemented (2026-08-16); observation week in progress.
 
-ClipMouse 0.1.0 — successor to ClipMenu 0.4.3 · Swift 6 · AppKit · 2026
+ClipMouse 0.2.0 — successor to ClipMenu 0.4.3 · Swift 6 · AppKit · 2026

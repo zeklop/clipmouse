@@ -191,4 +191,4 @@ design/icons/   концепт иконки (SVG — источник истин
 
 Фазы 0–6 реализованы (2026-08-16), идёт наблюдательная неделя.
 
-ClipMouse 0.1.0 — преемник ClipMenu 0.4.3 · Swift 6 · AppKit · 2026
+ClipMouse 0.2.0 — преемник ClipMenu 0.4.3 · Swift 6 · AppKit · 2026

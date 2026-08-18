@@ -42,7 +42,7 @@ const I18N = {
     ist1t: "Клонируйте репозиторий", ist1d: "Понадобятся Command Line Tools для Swift 6 — Xcode не нужен.",
     ist2t: "make install", ist2d: "Соберёт release-сборку, сгенерирует иконку icns, подпишет (свой сертификат подхватится сам) и скопирует в /Applications.",
     ist3t: "Разрешения при первом запуске", ist3d: "Разрешите доступ к буферу обмена и выдайте Accessibility — приложение само подскажет, где нажать.",
-    foot_left: "ClipMouse 0.1.0 — преемник ClipMenu 0.4.3",
+    foot_left: "ClipMouse 0.2.0 — преемник ClipMenu 0.4.3",
     foot_right: "zeklop · Swift 6 · AppKit · 2026",
     ph_shot: "Скриншот появится здесь"
   },
@@ -84,7 +84,7 @@ const I18N = {
     ist1t: "Clone the repository", ist1d: "You will need the Command Line Tools for Swift 6 — no Xcode required.",
     ist2t: "make install", ist2d: "Builds the release, generates the icns icon, signs it (your own certificate is picked up automatically) and copies to /Applications.",
     ist3t: "Permissions on first launch", ist3d: "Allow clipboard access and grant Accessibility — the app walks you to the right screens.",
-    foot_left: "ClipMouse 0.1.0 — successor to ClipMenu 0.4.3",
+    foot_left: "ClipMouse 0.2.0 — successor to ClipMenu 0.4.3",
     foot_right: "zeklop · Swift 6 · AppKit · 2026",
     ph_shot: "Screenshot goes here"
   }
