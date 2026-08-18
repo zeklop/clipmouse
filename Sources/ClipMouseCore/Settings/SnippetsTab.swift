@@ -90,10 +90,15 @@ final class SnippetsTab: NSObject {
         left.addArrangedSubview(catScroll)
         left.addArrangedSubview(NSStackView(views: [catAddButton, catRemoveButton]))
 
-        // правая панель: список (заголовок, таблица, кнопки) и редактор
+        // правая панель: список (заголовок, таблица, кнопки) и редактор.
+        // Ревизия 19 (фикс серой дыры): стретч стека .width растягивает
+        // обычные view (лейблы, скроллы — им хватает пониженного hugging),
+        // но вложенный NSStackView оставляет fitting-шириной и прижимает
+        // к правому краю (замерено AX-дампом живой сборки). Поэтому right —
+        // .leading, а ширину вложенных стеков фиксируем явными констрейнтами.
         let right = NSStackView()
         right.orientation = .vertical
-        right.alignment = .width
+        right.alignment = .leading
         right.spacing = 6
         right.translatesAutoresizingMaskIntoConstraints = false
 
@@ -101,6 +106,14 @@ final class SnippetsTab: NSObject {
         listStack.alignment = .width
         listStack.spacing = 6
         listStack.translatesAutoresizingMaskIntoConstraints = false
+        // пониженный hugging — чтобы стретч listStack (.width) растягивал
+        // скролл и лейблы внутри него
+        listStack.setContentHuggingPriority(NSLayoutConstraint.Priority(1), for: .horizontal)
+        editorStack.setContentHuggingPriority(NSLayoutConstraint.Priority(1), for: .horizontal)
+        snippetsScroll.setContentHuggingPriority(NSLayoutConstraint.Priority(1), for: .horizontal)
+        contentScroll.setContentHuggingPriority(NSLayoutConstraint.Priority(1), for: .horizontal)
+        titleField.setContentHuggingPriority(NSLayoutConstraint.Priority(1), for: .horizontal)
+        insertPopup.setContentHuggingPriority(NSLayoutConstraint.Priority(1), for: .horizontal)
         snippetsScroll.documentView = snippetsTable
         snippetsScroll.hasVerticalScroller = true
         snippetsScroll.borderType = .bezelBorder
@@ -122,6 +135,11 @@ final class SnippetsTab: NSObject {
         buildEditor()
         right.addArrangedSubview(listStack)
         right.addArrangedSubview(editorStack)
+        // вложенные стеки .leading-стек не растягивает — ширина явная
+        NSLayoutConstraint.activate([
+            listStack.widthAnchor.constraint(equalTo: right.widthAnchor),
+            editorStack.widthAnchor.constraint(equalTo: right.widthAnchor),
+        ])
 
         root.addSubview(left)
         root.addSubview(right)
