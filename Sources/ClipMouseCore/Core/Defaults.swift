@@ -18,6 +18,7 @@ enum DefaultsKey {
     static let securityBlockedSources = "security.blockedSources"
     static let securityDictationSuppressSeconds = "security.dictationSuppressSeconds"
     static let securitySecretTTLMinutes = "security.secretTTLMinutes"
+    static let securityTemporarySecretsEnabled = "security.temporarySecretsEnabled"
     static let awakeBatteryThreshold = "awake.batteryThreshold"
     static let awakeDefaultDuration = "awake.defaultDuration"
     static let mouseEnabled = "mouse.enabled"
@@ -56,6 +57,7 @@ public struct Prefs {
             ],
             DefaultsKey.securityDictationSuppressSeconds: 5.0,
             DefaultsKey.securitySecretTTLMinutes: 60,
+            DefaultsKey.securityTemporarySecretsEnabled: true,
             DefaultsKey.awakeBatteryThreshold: 20,
             DefaultsKey.awakeDefaultDuration: 3600,
             DefaultsKey.mouseEnabled: true,
@@ -80,6 +82,9 @@ public struct Prefs {
     var blockedSources: [String] { d.stringArray(forKey: DefaultsKey.securityBlockedSources) ?? [] }
     var dictationSuppressSeconds: Double { d.double(forKey: DefaultsKey.securityDictationSuppressSeconds) }
     var secretTTLMinutes: Int { d.integer(forKey: DefaultsKey.securitySecretTTLMinutes) }
+    /// Ревизия 15: тумблер временного хранения секретов (дефолт true —
+    /// поведение ревизии 14). Выключено — секреты пишутся рядовыми клипами.
+    var temporarySecretsEnabled: Bool { d.bool(forKey: DefaultsKey.securityTemporarySecretsEnabled) }
     var awakeBatteryThreshold: Int { d.integer(forKey: DefaultsKey.awakeBatteryThreshold) }
     public var awakeDefaultDuration: Int { d.integer(forKey: DefaultsKey.awakeDefaultDuration) }
     public var mouseEnabled: Bool { d.bool(forKey: DefaultsKey.mouseEnabled) }
@@ -129,5 +134,9 @@ public struct Prefs {
 
     public func setSecretTTLMinutes(_ v: Int) {
         d.set(min(max(v, 5), 1440), forKey: DefaultsKey.securitySecretTTLMinutes)
+    }
+
+    public func setTemporarySecretsEnabled(_ v: Bool) {
+        d.set(v, forKey: DefaultsKey.securityTemporarySecretsEnabled)
     }
 }

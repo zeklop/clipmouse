@@ -13,8 +13,10 @@ public final class MenuBuilder: NSObject {
     /// Тоггл ремапа из настроек — проброс наверх, в main (ревью публикации)
     var onMouseToggle: ((Bool) -> Void)?
     private lazy var settings = {
-        let s = SettingsWindowController(store: store, prefs: prefs)
+        let s = SettingsWindowController(store: store, snippetsStore: snippetsStore, prefs: prefs)
         s.onMouseToggle = { [weak self] on in self?.onMouseToggle?(on) }
+        // Тупик «нет категорий» из правого клика по клипу ведёт во вкладку Snippets
+        SnippetSaver.onOpenSettings = { [weak s] in s?.show(tab: .snippets) }
         return s
     }()
 
@@ -209,76 +211,28 @@ public final class MenuBuilder: NSObject {
         root?.attributedTitle = Self.awakeTitle(base + suffix)
     }
 
-    /// Секция сниппетов (ревизия 8): `Snippets ▸` — меню управления
-    /// категориями и сниппетами, категории — пунктами основного уровня.
+    /// Секция сниппетов (ревизия 16): управление переехало в настройки
+    /// («Manage Snippets…» → вкладка Snippets), в меню осталась только
+    /// вставка — категории пунктами основного уровня.
     private func addSnippetsSection(to menu: NSMenu) {
-        // Управление
-        let manage = NSMenuItem(title: String(localized: "Snippets ▸"), action: nil, keyEquivalent: "")
-        let manageMenu = NSMenu()
-        let addSnippet = NSMenuItem(title: String(localized: "Add Snippet…"),
-                                    action: #selector(addSnippetDialog), keyEquivalent: "")
-        addSnippet.target = self
-        manageMenu.addItem(addSnippet)
-        let addCategory = NSMenuItem(title: String(localized: "Add Category…"),
-                                     action: #selector(addCategoryDialog), keyEquivalent: "")
-        addCategory.target = self
-        manageMenu.addItem(addCategory)
-        if !snippetsByFolder.isEmpty {
-            manageMenu.addItem(.separator())
-            let delRoot = NSMenuItem(title: String(localized: "Delete Category ▸"), action: nil, keyEquivalent: "")
-            let delMenu = NSMenu()
-            for group in snippetsByFolder {
-                let item = NSMenuItem(title: group.folder.title,
-                                      action: #selector(deleteCategoryAction), keyEquivalent: "")
-                item.target = self
-                item.tag = Int(group.folder.id)
-                item.toolTip = String(localized: "Delete the category and its snippets")
-                delMenu.addItem(item)
-            }
-            manageMenu.setSubmenu(delMenu, for: delRoot)
-            manageMenu.addItem(delRoot)
-        }
-        menu.setSubmenu(manageMenu, for: manage)
+        let manage = NSMenuItem(title: String(localized: "Manage Snippets…"),
+                                action: #selector(openSnippetsSettings), keyEquivalent: "")
+        manage.target = self
         menu.addItem(manage)
 
-        // Категории на основном уровне
         for group in snippetsByFolder {
             let cat = NSMenuItem(title: group.folder.title, action: nil, keyEquivalent: "")
             let catMenu = NSMenu()
             for snippet in group.items {
                 catMenu.addItem(snippetItem(snippet))
-                // ⌥-альтернативы: правка и удаление конкретного сниппета
-                let edit = NSMenuItem(
-                    title: String(format: String(localized: "edit.snippet"), snippet.title),
-                    action: #selector(editSnippetDialog), keyEquivalent: "")
-                edit.target = self
-                edit.tag = Int(snippet.id)
-                edit.isAlternate = true
-                edit.keyEquivalentModifierMask = .option
-                catMenu.addItem(edit)
-                let del = NSMenuItem(
-                    title: String(format: String(localized: "delete.snippet"), snippet.title),
-                    action: #selector(deleteSnippetAction), keyEquivalent: "")
-                del.target = self
-                del.tag = Int(snippet.id)
-                del.isAlternate = true
-                del.keyEquivalentModifierMask = [.option, .shift]
-                catMenu.addItem(del)
             }
-            addCategoryHint(to: catMenu)
             menu.setSubmenu(catMenu, for: cat)
             menu.addItem(cat)
         }
     }
 
-    /// Нижняя строка подменю категории: подсказка про ⌥/⌥⇧ (ревизия 8.1).
-    private func addCategoryHint(to menu: NSMenu) {
-        guard !menu.items.isEmpty else { return }
-        menu.addItem(.separator())
-        let hint = NSMenuItem(title: String(localized: "Hold ⌥ to edit · ⌥⇧ to delete"),
-                              action: nil, keyEquivalent: "")
-        hint.isEnabled = false
-        menu.addItem(hint)
+    @objc private func openSnippetsSettings() {
+        settings.show(tab: .snippets)
     }
 
     private func snippetItem(_ snippet: SnippetStore.Snippet) -> NSMenuItem {
@@ -448,91 +402,6 @@ public final class MenuBuilder: NSObject {
 
     @objc private func openSettings() {
         settings.show()
-    }
-
-    // MARK: - Управление сниппетами (ревизия 8)
-
-    @objc private func addSnippetDialog() {
-        guard !snippetsByFolder.isEmpty else {
-            SnippetSaver.infoAlert(String(localized: "Add a category first."))
-            return
-        }
-        let popup = NSPopUpButton(frame: NSRect(x: 0, y: 0, width: 260, height: 24), pullsDown: false)
-        for group in snippetsByFolder { popup.addItem(withTitle: group.folder.title) }
-        guard let (title, content) = SnippetSaver.dialog(title: "", content: "", accessory: popup)
-        else { return }
-        let folder = snippetsByFolder[popup.indexOfSelectedItem].folder
-        let store = snippetsStore
-        let idx = popup.indexOfSelectedItem
-        Task { @MainActor in
-            try? await store.insertSnippet(folderID: folder.id, title: title, content: content)
-            Log.menu.info("сниппет добавлен в «\(self.snippetsByFolder[idx].folder.title, privacy: .public)»")
-            NotificationCenter.default.post(name: .clipsDidChange, object: nil)
-        }
-    }
-
-    @objc private func addCategoryDialog() {
-        guard let name = Self.textDialog(
-            message: String(localized: "New Category"),
-            label: String(localized: "Name:"),
-            placeholder: String(localized: "Category name"))
-        else { return }
-        let store = snippetsStore
-        Task { @MainActor in
-            _ = try? await store.insertCategory(title: name)
-            NotificationCenter.default.post(name: .clipsDidChange, object: nil)
-        }
-    }
-
-    @objc private func deleteCategoryAction(_ sender: NSMenuItem) {
-        let id = Int64(sender.tag)
-        guard let group = snippetsByFolder.first(where: { $0.folder.id == id }) else { return }
-        let alert = NSAlert()
-        alert.messageText = String(format: String(localized: "delete.category"), group.folder.title)
-        alert.informativeText = String(format: String(localized: "delete.category.snippets"), group.items.count)
-        alert.addButton(withTitle: String(localized: "Delete"))
-        alert.addButton(withTitle: String(localized: "Cancel"))
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
-        let store = snippetsStore
-        Task { @MainActor in
-            try? await store.deleteCategory(id: id)
-            NotificationCenter.default.post(name: .clipsDidChange, object: nil)
-        }
-    }
-
-    @objc private func editSnippetDialog(_ sender: NSMenuItem) {
-        let id = Int64(sender.tag)
-        guard let snippet = snippetsByFolder.flatMap(\.items).first(where: { $0.id == id }) else { return }
-        guard let (title, content) = SnippetSaver.dialog(title: snippet.title,
-                                                   content: snippet.content, accessory: nil)
-        else { return }
-        let store = snippetsStore
-        Task { @MainActor in
-            try? await store.updateSnippet(id: id, title: title, content: content)
-            NotificationCenter.default.post(name: .clipsDidChange, object: nil)
-        }
-    }
-
-    @objc private func deleteSnippetAction(_ sender: NSMenuItem) {
-        let id = Int64(sender.tag)
-        let store = snippetsStore
-        Task { @MainActor in
-            try? await store.deleteSnippet(id: id)
-            NotificationCenter.default.post(name: .clipsDidChange, object: nil)
-        }
-    }
-
-    private static func textDialog(message: String, label: String, placeholder: String) -> String? {
-        let alert = NSAlert()
-        alert.messageText = message
-        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 260, height: 24))
-        field.placeholderString = placeholder
-        alert.accessoryView = field
-        alert.addButton(withTitle: String(localized: "OK"))
-        alert.addButton(withTitle: String(localized: "Cancel"))
-        guard alert.runModal() == .alertFirstButtonReturn else { return nil }
-        let value = field.stringValue.trimmingCharacters(in: .whitespaces)
-        return value.isEmpty ? nil : value
     }
 
     @objc private func openSearch() {

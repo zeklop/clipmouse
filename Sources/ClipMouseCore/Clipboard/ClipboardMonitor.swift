@@ -98,10 +98,11 @@ public actor ClipboardMonitor {
         }
         clip.sourceBundle = sources.first
 
-        // Эвристики секретов — только для текста (§12): сохраняем сразу,
-        // но временным клипом с TTL из настроек; по истечении purge
-        // уберёт его из БД и меню.
-        if clip.kind == .string, let text = clip.text,
+        // Эвристики секретов — только для текста (§12) и только при
+        // включённом временном хранении (ревизия 15): выключено — секрет
+        // сохраняется как рядовой клип, expiresAt остаётся nil.
+        // Настройка читается в момент захвата.
+        if prefs.temporarySecretsEnabled, clip.kind == .string, let text = clip.text,
            let verdict = SecretHeuristics.check(text) {
             let ttl = TimeInterval(max(prefs.secretTTLMinutes, 1) * 60)
             clip.expiresAt = Date().addingTimeInterval(ttl)

@@ -1,45 +1,64 @@
 import AppKit
 import ServiceManagement
 
-/// Окно настроек (§9 Фаза 6): один экран без вкладок, контент в скролле
-/// (ревизия 9.1), список заблокированных приложений — со своим скроллом.
-/// Сохранение: чекбоксы и попапы — мгновенно, числовые поля — по Enter
-/// или при уходе фокуса (NSControl.textDidEndEditingNotification).
+/// Окно настроек с табами (ревизия 16): NSTabView — General / Snippets /
+/// Security / About, футер с версией под табами. Таб Snippets — master-detail
+/// в SnippetsTab. Сохранение: чекбоксы и попапы — мгновенно, числовые
+/// поля — по Enter или при уходе фокуса (controlTextDidEndEditing).
 @MainActor
 public final class SettingsWindowController: NSObject {
 
+    /// Табы настроек для show(tab:) — «Manage Snippets…» и тупик
+    /// «нет категорий» ведут сразу на нужный таб.
+    public enum Tab: String {
+        case general, snippets, security, about
+    }
+
     private let store: ClipStore
+    private let snippetsStore: SnippetStore
     private let prefs: Prefs
     private var window: NSWindow?
+    private var tabView: NSTabView?
+    private var snippetsTab: SnippetsTab?
 
+    // General
     private var loginCheckbox: NSButton!
     private var mouseCheckbox: NSButton!
+    private var autoPasteCheckbox: NSButton!
     private var keepLastField: NSTextField!
     private var expireDaysField: NSTextField!
     private var inlineCountField: NSTextField!
-    private var autoPasteCheckbox: NSButton!
     private var durationPopup: NSPopUpButton!
     private var batteryField: NSTextField!
+
+    // Security
     private var blockedTable: NSTableView!
     private var blockedData: [(bundle: String, name: String, icon: NSImage?)] = []
+    private var addButton: NSButton!
+    private var secretsCheckbox: NSButton!
     private var secretTTLField: NSTextField!
+
     /// Числовое поле → сеттер значения (controlTextDidEndEditing)
     private var fieldSetters: [ObjectIdentifier: (String) -> Void] = [:]
-    private var addButton: NSButton!
 
     private static let durations: [(String, Int)] =
         [(String(localized: "30 min"), 1800), (String(localized: "1 hour"), 3600),
          (String(localized: "2 hours"), 7200), (String(localized: "5 hours"), 18_000)]
 
-    public init(store: ClipStore, prefs: Prefs) {
+    public init(store: ClipStore, snippetsStore: SnippetStore, prefs: Prefs) {
         self.store = store
+        self.snippetsStore = snippetsStore
         self.prefs = prefs
         super.init()
     }
 
-    public func show() {
+    /// Открыть окно на данном табе (по умолчанию General). Таб Snippets
+    /// перечитывает данные при каждом показе.
+    public func show(tab: Tab = .general) {
         if window == nil { build() }
         syncFromPrefs()
+        snippetsTab?.reload()
+        tabView?.selectTabViewItem(withIdentifier: tab.rawValue)
         window?.center()
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -48,139 +67,30 @@ public final class SettingsWindowController: NSObject {
     // MARK: - Сборка
 
     private func build() {
-        let stack = NSStackView()
-        stack.orientation = .vertical
-        stack.alignment = .leading
-        stack.spacing = 8
-        stack.edgeInsets = NSEdgeInsets(top: 16, left: 20, bottom: 16, right: 20)
-        stack.translatesAutoresizingMaskIntoConstraints = false
+        let tabView = NSTabView()
+        tabView.translatesAutoresizingMaskIntoConstraints = false
 
-        func section(_ title: String) {
-            let label = NSTextField(labelWithString: title)
-            label.font = .systemFont(ofSize: 13, weight: .semibold)
-            stack.addArrangedSubview(label)
-            stack.setCustomSpacing(4, after: label)
-        }
+        let general = NSTabViewItem(identifier: Tab.general.rawValue)
+        general.label = String(localized: "General")
+        general.view = buildGeneralTab()
+        tabView.addTabViewItem(general)
 
-        func gap(_ v: CGFloat = 14) {
-            let spacer = NSView()
-            spacer.translatesAutoresizingMaskIntoConstraints = false
-            spacer.heightAnchor.constraint(equalToConstant: v).isActive = true
-            stack.addArrangedSubview(spacer)
-            stack.setCustomSpacing(0, after: spacer)
-        }
+        let snippetsItem = NSTabViewItem(identifier: Tab.snippets.rawValue)
+        snippetsItem.label = String(localized: "Snippets")
+        let snippetsTab = SnippetsTab(store: snippetsStore)
+        self.snippetsTab = snippetsTab
+        snippetsItem.view = snippetsTab.root
+        tabView.addTabViewItem(snippetsItem)
 
-        /// Строка «подпись слева, контрол справа».
-        @discardableResult
-        func row(caption: String, view: NSView, captionWidth: CGFloat = 250) -> NSStackView {
-            let label = NSTextField(labelWithString: caption)
-            label.translatesAutoresizingMaskIntoConstraints = false
-            view.translatesAutoresizingMaskIntoConstraints = false
-            let h = NSStackView(views: [label, view])
-            h.orientation = .horizontal
-            h.spacing = 8
-            label.widthAnchor.constraint(equalToConstant: captionWidth).isActive = true
-            stack.addArrangedSubview(h)
-            return h
-        }
+        let security = NSTabViewItem(identifier: Tab.security.rawValue)
+        security.label = String(localized: "Security")
+        security.view = buildSecurityTab()
+        tabView.addTabViewItem(security)
 
-        func numberField(value: Int, action: Selector, save: @escaping (Int) -> Void) -> NSTextField {
-            let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 70, height: 22))
-            field.stringValue = String(value)
-            field.target = self
-            field.action = action
-            bindEndEditing(field) { save(Int($0) ?? value) }
-            field.widthAnchor.constraint(equalToConstant: 70).isActive = true
-            return field
-        }
-
-        // General
-        section(String(localized: "General"))
-        loginCheckbox = checkbox(String(localized: "Launch at Login"), action: #selector(toggleLogin))
-        stack.addArrangedSubview(loginCheckbox)
-        mouseCheckbox = checkbox(String(localized: "Middle mouse button → right ⌘"), action: #selector(toggleMouse))
-        stack.addArrangedSubview(mouseCheckbox)
-        let shortcuts = NSTextField(labelWithString: String(localized: "shortcuts.hint"))
-        shortcuts.textColor = .secondaryLabelColor
-        stack.addArrangedSubview(shortcuts)
-        gap()
-
-        // History
-        section(String(localized: "History"))
-        keepLastField = numberField(value: prefs.historyLimit,
-                                     action: #selector(keepLastChanged)) { self.prefs.setHistoryLimit($0) }
-        row(caption: String(localized: "Keep last (10…500)"), view: keepLastField)
-        expireDaysField = numberField(value: prefs.historyExpireDays,
-                                      action: #selector(expireChanged)) { self.prefs.setHistoryExpireDays($0) }
-        row(caption: String(localized: "Delete after days (1…365)"), view: expireDaysField)
-        inlineCountField = numberField(value: prefs.menuInlineCount,
-                                       action: #selector(inlineChanged)) { self.prefs.setMenuInlineCount($0) }
-        row(caption: String(localized: "Show in menu (5…30)"), view: inlineCountField)
-        let clear = NSButton(title: String(localized: "Clear All History…"), target: self,
-                             action: #selector(clearHistory))
-        clear.bezelStyle = .rounded
-        clear.translatesAutoresizingMaskIntoConstraints = false
-        stack.addArrangedSubview(clear)
-        gap()
-
-        // Paste
-        section(String(localized: "Paste"))
-        autoPasteCheckbox = checkbox(String(localized: "Paste immediately after selecting (⌘V)"),
-                                     action: #selector(toggleAutoPaste))
-        stack.addArrangedSubview(autoPasteCheckbox)
-        let hint = NSTextField(labelWithString: String(localized: "paste.hint"))
-        hint.font = .systemFont(ofSize: 11)
-        hint.textColor = .secondaryLabelColor
-        stack.addArrangedSubview(hint)
-        gap()
-
-        // Security
-        section(String(localized: "security.section"))
-        blockedTable = makeBlockedTable()
-        let scroll = NSScrollView()
-        scroll.documentView = blockedTable
-        scroll.hasVerticalScroller = true
-        scroll.translatesAutoresizingMaskIntoConstraints = false
-        scroll.heightAnchor.constraint(equalToConstant: 110).isActive = true
-        scroll.widthAnchor.constraint(equalToConstant: 400).isActive = true
-        stack.addArrangedSubview(scroll)
-        addButton = NSButton(title: String(localized: "+ Add running app…"), target: self,
-                             action: #selector(addBlockedApp))
-        addButton.bezelStyle = .rounded
-        addButton.translatesAutoresizingMaskIntoConstraints = false
-        stack.addArrangedSubview(addButton)
-        secretTTLField = numberField(value: prefs.secretTTLMinutes,
-                                     action: #selector(secretTTLChanged)) { self.prefs.setSecretTTLMinutes($0) }
-        row(caption: String(localized: "Temporary secrets lifetime, minutes (5…1440)"),
-            view: secretTTLField)
-        gap()
-
-        // Awake
-        section(String(localized: "Awake"))
-        durationPopup = NSPopUpButton(frame: NSRect(x: 0, y: 0, width: 160, height: 24), pullsDown: false)
-        for (label, _) in Self.durations { durationPopup.addItem(withTitle: label) }
-        durationPopup.target = self
-        durationPopup.action = #selector(durationChanged)
-        row(caption: String(localized: "Icon toggle duration"), view: durationPopup)
-        batteryField = numberField(value: prefs.awakeBatteryThreshold,
-                                   action: #selector(batteryChanged)) { self.prefs.setAwakeBatteryThreshold($0) }
-        row(caption: String(localized: "Turn off below battery % (5…100)"), view: batteryField)
-
-        // Скролл со всем контентом
-        let document = NSView()
-        document.translatesAutoresizingMaskIntoConstraints = false
-        document.addSubview(stack)
-        NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: document.leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: document.trailingAnchor),
-            stack.topAnchor.constraint(equalTo: document.topAnchor),
-            stack.bottomAnchor.constraint(equalTo: document.bottomAnchor),
-        ])
-        let scrollAll = NSScrollView()
-        scrollAll.documentView = document
-        scrollAll.hasVerticalScroller = true
-        scrollAll.borderType = .noBorder
-        scrollAll.translatesAutoresizingMaskIntoConstraints = false
+        let about = NSTabViewItem(identifier: Tab.about.rawValue)
+        about.label = String(localized: "About")
+        about.view = buildAboutTab()
+        tabView.addTabViewItem(about)
 
         // Футер: версия и автор (мелко) — весь колонтитул ведёт в репозиторий
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
@@ -195,18 +105,16 @@ public final class SettingsWindowController: NSObject {
         footer.toolTip = "https://github.com/zeklop/clipmouse"
         footer.translatesAutoresizingMaskIntoConstraints = false
 
-        let root = NSView(frame: NSRect(x: 0, y: 0, width: 480, height: 520))
-        root.addSubview(scrollAll)
+        let root = NSView(frame: NSRect(x: 0, y: 0, width: 620, height: 540))
+        root.addSubview(tabView)
         root.addSubview(footer)
         NSLayoutConstraint.activate([
-            scrollAll.topAnchor.constraint(equalTo: root.topAnchor),
-            scrollAll.leadingAnchor.constraint(equalTo: root.leadingAnchor),
-            scrollAll.trailingAnchor.constraint(equalTo: root.trailingAnchor),
-            scrollAll.bottomAnchor.constraint(equalTo: footer.topAnchor),
+            tabView.topAnchor.constraint(equalTo: root.topAnchor, constant: 8),
+            tabView.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 8),
+            tabView.trailingAnchor.constraint(equalTo: root.trailingAnchor, constant: -8),
+            tabView.bottomAnchor.constraint(equalTo: footer.topAnchor),
             footer.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 20),
             footer.bottomAnchor.constraint(equalTo: root.bottomAnchor, constant: -6),
-            // ширина контента = ширина скролла (стек не растягивается)
-            document.widthAnchor.constraint(equalTo: scrollAll.widthAnchor),
         ])
 
         let w = NSWindow(contentViewController: NSViewController())
@@ -214,7 +122,79 @@ public final class SettingsWindowController: NSObject {
         w.title = String(localized: "ClipMouse Settings")
         w.styleMask = [.titled, .closable]
         w.isReleasedWhenClosed = false
+        w.setContentSize(NSSize(width: 620, height: 540))
         window = w
+        self.tabView = tabView
+    }
+
+    /// Вертикальный стек в скролле — паттерн дотабового окна настроек.
+    /// Ширина документа равна ширине скролла, чтобы полноширинные
+    /// контролы можно было прижать к документу.
+    private func makeScrollStack(alignment: NSLayoutConstraint.Attribute = .leading)
+        -> (scroll: NSScrollView, stack: NSStackView, document: NSView) {
+        let stack = NSStackView()
+        stack.orientation = .vertical
+        stack.alignment = alignment
+        stack.spacing = 8
+        stack.edgeInsets = NSEdgeInsets(top: 16, left: 20, bottom: 16, right: 20)
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        let document = NSView()
+        document.translatesAutoresizingMaskIntoConstraints = false
+        document.addSubview(stack)
+        let scroll = NSScrollView()
+        scroll.documentView = document
+        scroll.hasVerticalScroller = true
+        scroll.borderType = .noBorder
+        scroll.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: document.leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: document.trailingAnchor),
+            stack.topAnchor.constraint(equalTo: document.topAnchor),
+            stack.bottomAnchor.constraint(equalTo: document.bottomAnchor),
+            document.widthAnchor.constraint(equalTo: scroll.widthAnchor),
+        ])
+        return (scroll, stack, document)
+    }
+
+    private func section(_ title: String, in stack: NSStackView) {
+        let label = NSTextField(labelWithString: title)
+        label.font = .systemFont(ofSize: 13, weight: .semibold)
+        stack.addArrangedSubview(label)
+        stack.setCustomSpacing(4, after: label)
+    }
+
+    private func gap(_ v: CGFloat = 14, in stack: NSStackView) {
+        let spacer = NSView()
+        spacer.translatesAutoresizingMaskIntoConstraints = false
+        spacer.heightAnchor.constraint(equalToConstant: v).isActive = true
+        stack.addArrangedSubview(spacer)
+        stack.setCustomSpacing(0, after: spacer)
+    }
+
+    /// Строка «подпись слева, контрол справа».
+    @discardableResult
+    private func row(caption: String, view: NSView, in stack: NSStackView,
+                     captionWidth: CGFloat = 250) -> NSStackView {
+        let label = NSTextField(labelWithString: caption)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        view.translatesAutoresizingMaskIntoConstraints = false
+        let h = NSStackView(views: [label, view])
+        h.orientation = .horizontal
+        h.spacing = 8
+        label.widthAnchor.constraint(equalToConstant: captionWidth).isActive = true
+        stack.addArrangedSubview(h)
+        return h
+    }
+
+    private func numberField(value: Int, action: Selector,
+                             save: @escaping (Int) -> Void) -> NSTextField {
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 70, height: 22))
+        field.stringValue = String(value)
+        field.target = self
+        field.action = action
+        bindEndEditing(field) { save(Int($0) ?? value) }
+        field.widthAnchor.constraint(equalToConstant: 70).isActive = true
+        return field
     }
 
     private func checkbox(_ title: String, action: Selector) -> NSButton {
@@ -229,10 +209,99 @@ public final class SettingsWindowController: NSObject {
         fieldSetters[ObjectIdentifier(field)] = save
     }
 
+    // MARK: - Таб General
+
+    private func buildGeneralTab() -> NSView {
+        let (scroll, stack, _) = makeScrollStack()
+
+        // General: три чекбокса подряд, без хинтов (ревизия 16)
+        section(String(localized: "General"), in: stack)
+        loginCheckbox = checkbox(String(localized: "Launch at Login"), action: #selector(toggleLogin))
+        stack.addArrangedSubview(loginCheckbox)
+        mouseCheckbox = checkbox(String(localized: "Middle mouse button → right ⌘"), action: #selector(toggleMouse))
+        stack.addArrangedSubview(mouseCheckbox)
+        autoPasteCheckbox = checkbox(String(localized: "Paste immediately after selecting (⌘V)"),
+                                     action: #selector(toggleAutoPaste))
+        stack.addArrangedSubview(autoPasteCheckbox)
+        gap(in: stack)
+
+        // History
+        section(String(localized: "History"), in: stack)
+        keepLastField = numberField(value: prefs.historyLimit,
+                                     action: #selector(keepLastChanged)) { self.prefs.setHistoryLimit($0) }
+        row(caption: String(localized: "Keep last (10…500)"), view: keepLastField, in: stack)
+        expireDaysField = numberField(value: prefs.historyExpireDays,
+                                      action: #selector(expireChanged)) { self.prefs.setHistoryExpireDays($0) }
+        row(caption: String(localized: "Delete after days (1…365)"), view: expireDaysField, in: stack)
+        inlineCountField = numberField(value: prefs.menuInlineCount,
+                                       action: #selector(inlineChanged)) { self.prefs.setMenuInlineCount($0) }
+        let inlineRow = row(caption: String(localized: "Show in menu (5…30)"), view: inlineCountField, in: stack)
+        let clear = NSButton(title: String(localized: "Clear All History…"), target: self,
+                             action: #selector(clearHistory))
+        clear.bezelStyle = .rounded
+        clear.translatesAutoresizingMaskIntoConstraints = false
+        inlineRow.addArrangedSubview(clear)
+        gap(in: stack)
+
+        // Awake
+        section(String(localized: "Awake"), in: stack)
+        durationPopup = NSPopUpButton(frame: NSRect(x: 0, y: 0, width: 160, height: 24), pullsDown: false)
+        for (label, _) in Self.durations { durationPopup.addItem(withTitle: label) }
+        durationPopup.target = self
+        durationPopup.action = #selector(durationChanged)
+        row(caption: String(localized: "Icon toggle duration"), view: durationPopup, in: stack)
+        batteryField = numberField(value: prefs.awakeBatteryThreshold,
+                                   action: #selector(batteryChanged)) { self.prefs.setAwakeBatteryThreshold($0) }
+        row(caption: String(localized: "Turn off below battery % (5…100)"), view: batteryField, in: stack)
+
+        return scroll
+    }
+
+    // MARK: - Таб Security
+
+    private func buildSecurityTab() -> NSView {
+        let (scroll, stack, document) = makeScrollStack()
+
+        // Blocked apps: таблица на всю ширину вкладки (ревизия 16)
+        section(String(localized: "security.blocked.header"), in: stack)
+        let hint = NSTextField(labelWithString: String(localized: "security.blocked.hint"))
+        hint.textColor = .secondaryLabelColor
+        stack.addArrangedSubview(hint)
+        blockedTable = makeBlockedTable()
+        let blockedScroll = NSScrollView()
+        blockedScroll.documentView = blockedTable
+        blockedScroll.hasVerticalScroller = true
+        blockedScroll.translatesAutoresizingMaskIntoConstraints = false
+        blockedScroll.heightAnchor.constraint(equalToConstant: 140).isActive = true
+        blockedScroll.widthAnchor.constraint(equalTo: document.widthAnchor, constant: -40).isActive = true
+        stack.addArrangedSubview(blockedScroll)
+        addButton = NSButton(title: String(localized: "+ Add running app…"), target: self,
+                             action: #selector(addBlockedApp))
+        addButton.bezelStyle = .rounded
+        addButton.translatesAutoresizingMaskIntoConstraints = false
+        stack.addArrangedSubview(addButton)
+        gap(in: stack)
+
+        // Temporary secrets (ревизия 15): чекбокс над полем TTL,
+        // поле дизейблится вместе с тумблером
+        section(String(localized: "security.secrets.header"), in: stack)
+        secretsCheckbox = checkbox(String(localized: "security.secrets.toggle"),
+                                   action: #selector(toggleSecrets))
+        stack.addArrangedSubview(secretsCheckbox)
+        secretTTLField = numberField(value: prefs.secretTTLMinutes,
+                                     action: #selector(secretTTLChanged)) { self.prefs.setSecretTTLMinutes($0) }
+        row(caption: String(localized: "security.ttl"), view: secretTTLField, in: stack)
+        let secretsHint = NSTextField(labelWithString: String(localized: "security.secrets.hint"))
+        secretsHint.textColor = .secondaryLabelColor
+        stack.addArrangedSubview(secretsHint)
+
+        return scroll
+    }
+
     private func makeBlockedTable() -> NSTableView {
         let table = NSTableView()
         let col = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("app"))
-        col.width = 390
+        col.resizingMask = .autoresizingMask
         table.addTableColumn(col)
         table.headerView = nil
         table.delegate = self
@@ -242,16 +311,101 @@ public final class SettingsWindowController: NSObject {
         return table
     }
 
+    // MARK: - Таб About
+
+    private func buildAboutTab() -> NSView {
+        let (scroll, stack, document) = makeScrollStack(alignment: .centerX)
+
+        let icon = NSImageView(image: NSApp.applicationIconImage)
+        icon.translatesAutoresizingMaskIntoConstraints = false
+        icon.imageScaling = .scaleProportionallyUpOrDown
+        icon.widthAnchor.constraint(equalToConstant: 64).isActive = true
+        icon.heightAnchor.constraint(equalToConstant: 64).isActive = true
+        stack.addArrangedSubview(icon)
+
+        let name = NSTextField(labelWithString: String(localized: "ClipMouse"))
+        name.font = .systemFont(ofSize: 15, weight: .semibold)
+        stack.addArrangedSubview(name)
+
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
+        stack.addArrangedSubview(NSTextField(
+            labelWithString: String(format: String(localized: "about.version"), version)))
+
+        let tagline = NSTextField(labelWithString: String(localized: "about.tagline"))
+        tagline.textColor = .secondaryLabelColor
+        stack.addArrangedSubview(tagline)
+
+        let github = NSButton(title: String(localized: "GitHub"), target: self,
+                              action: #selector(openRepo))
+        github.bezelStyle = .rounded
+        stack.addArrangedSubview(github)
+
+        let license = NSTextField(labelWithString: String(localized: "MIT License"))
+        license.font = .systemFont(ofSize: 10)
+        license.textColor = .tertiaryLabelColor
+        stack.addArrangedSubview(license)
+        stack.setCustomSpacing(16, after: license)
+
+        let separator = NSBox()
+        separator.boxType = .separator
+        separator.translatesAutoresizingMaskIntoConstraints = false
+        separator.widthAnchor.constraint(equalTo: document.widthAnchor, constant: -80).isActive = true
+        stack.addArrangedSubview(separator)
+        stack.setCustomSpacing(12, after: separator)
+
+        // Shortcuts: список пар «модификаторы — описание»
+        let header = NSTextField(labelWithString: String(localized: "about.shortcuts.header"))
+        header.font = .systemFont(ofSize: 13, weight: .semibold)
+        let headerRow = NSStackView(views: [header])
+        headerRow.translatesAutoresizingMaskIntoConstraints = false
+        headerRow.widthAnchor.constraint(equalTo: document.widthAnchor, constant: -80).isActive = true
+        stack.addArrangedSubview(headerRow)
+        stack.setCustomSpacing(4, after: headerRow)
+        // Ключи — литералы: String(localized:) не принимает динамическую строку
+        for value in [String(localized: "about.shortcuts.history"),
+                      String(localized: "about.shortcuts.snippets"),
+                      String(localized: "about.shortcuts.awake"),
+                      String(localized: "about.shortcuts.plain"),
+                      String(localized: "about.shortcuts.posix"),
+                      String(localized: "about.shortcuts.saveSnippet"),
+                      String(localized: "about.shortcuts.settings")] {
+            stack.addArrangedSubview(shortcutRow(value, document: document))
+        }
+
+        return scroll
+    }
+
+    /// Строка шортката: символы правой колонкой фиксированной ширины,
+    /// описание — вторичным цветом; значение ключа — «символы — описание».
+    private func shortcutRow(_ value: String, document: NSView) -> NSView {
+        let parts = value.components(separatedBy: " — ")
+        let symLabel = NSTextField(labelWithString: parts.count == 2 ? parts[0] : "")
+        symLabel.font = .monospacedSystemFont(ofSize: 12, weight: .semibold)
+        symLabel.alignment = .right
+        symLabel.translatesAutoresizingMaskIntoConstraints = false
+        symLabel.widthAnchor.constraint(equalToConstant: 170).isActive = true
+        let descLabel = NSTextField(labelWithString: parts.count == 2 ? parts[1] : value)
+        descLabel.textColor = .secondaryLabelColor
+        let rowStack = NSStackView(views: [symLabel, descLabel])
+        rowStack.orientation = .horizontal
+        rowStack.spacing = 12
+        rowStack.translatesAutoresizingMaskIntoConstraints = false
+        rowStack.widthAnchor.constraint(equalTo: document.widthAnchor, constant: -80).isActive = true
+        return rowStack
+    }
+
     // MARK: - Синхронизация
 
     private func syncFromPrefs() {
         loginCheckbox.state = SMAppService.mainApp.status == .enabled ? .on : .off
         mouseCheckbox.state = prefs.mouseEnabled ? .on : .off
+        autoPasteCheckbox.state = prefs.pasteAutoAfterSelect ? .on : .off
         keepLastField.stringValue = String(prefs.historyLimit)
         expireDaysField.stringValue = String(prefs.historyExpireDays)
         inlineCountField.stringValue = String(prefs.menuInlineCount)
-        autoPasteCheckbox.state = prefs.pasteAutoAfterSelect ? .on : .off
         batteryField.stringValue = String(prefs.awakeBatteryThreshold)
+        secretsCheckbox.state = prefs.temporarySecretsEnabled ? .on : .off
+        secretTTLField.isEnabled = prefs.temporarySecretsEnabled
         secretTTLField.stringValue = String(prefs.secretTTLMinutes)
         if let idx = Self.durations.firstIndex(where: { $0.1 == prefs.awakeDefaultDuration }) {
             durationPopup.selectItem(at: idx)
@@ -275,7 +429,7 @@ public final class SettingsWindowController: NSObject {
 
     // MARK: - Действия
 
-    /// Колонтитул настроек — ссылка на репозиторий.
+    /// Колонтитул настроек и кнопка GitHub — ссылка на репозиторий.
     @objc private func openRepo() {
         NSWorkspace.shared.open(URL(string: "https://github.com/zeklop/clipmouse")!)
     }
@@ -313,6 +467,14 @@ public final class SettingsWindowController: NSObject {
 
     @objc private func toggleAutoPaste() {
         prefs.setPasteAutoAfterSelect(autoPasteCheckbox.state == .on)
+    }
+
+    /// Ревизия 15: тумблер временного хранения секретов; поле TTL
+    /// дизейблится вместе с тумблером.
+    @objc private func toggleSecrets() {
+        let on = secretsCheckbox.state == .on
+        prefs.setTemporarySecretsEnabled(on)
+        secretTTLField.isEnabled = on
     }
 
     @objc private func keepLastChanged() {
@@ -431,18 +593,29 @@ extension SettingsWindowController: NSTableViewDataSource, NSTableViewDelegate {
         let icon = NSImageView()
         icon.image = entry.icon ?? NSImage(systemSymbolName: "app.dashed",
                                            accessibilityDescription: nil)
-        icon.frame = NSRect(x: 4, y: 3, width: 18, height: 18)
+        icon.translatesAutoresizingMaskIntoConstraints = false
         let label = NSTextField(labelWithString: entry.name)
         label.font = .systemFont(ofSize: 12)
-        label.frame = NSRect(x: 28, y: 5, width: 300, height: 18)
+        label.translatesAutoresizingMaskIntoConstraints = false
         let remove = NSButton(title: "−", target: self, action: #selector(removeBlockedRow(_:)))
         remove.bezelStyle = .rounded
         remove.controlSize = .small
-        remove.frame = NSRect(x: 350, y: 1, width: 30, height: 22)
+        remove.translatesAutoresizingMaskIntoConstraints = false
         remove.toolTip = String(localized: "Remove from the list")
         cell.addSubview(icon)
         cell.addSubview(label)
         cell.addSubview(remove)
+        NSLayoutConstraint.activate([
+            icon.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 4),
+            icon.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
+            icon.widthAnchor.constraint(equalToConstant: 18),
+            icon.heightAnchor.constraint(equalToConstant: 18),
+            label.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 6),
+            label.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
+            label.trailingAnchor.constraint(lessThanOrEqualTo: remove.leadingAnchor, constant: -8),
+            remove.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -4),
+            remove.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
+        ])
         return cell
     }
 }

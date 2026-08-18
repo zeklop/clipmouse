@@ -9,12 +9,14 @@ public final class SnippetSaver: NSObject {
 
     /// Правый клик по клипу: предзаполненный диалог добавления сниппета —
     /// заголовок — превью клипа, контент — его текст, категория — попапом.
+    /// Тупик «нет категорий» (ревизия 16): двухкнопочный алерт с переходом
+    /// в таб Snippets — создать категорию из меню больше нельзя.
     public static func saveClipAsSnippet(_ clip: Clip, store: SnippetStore) {
         guard let text = clip.text, !text.isEmpty else { return }
         Task { @MainActor in
             let folders = (try? await store.folders()) ?? []
             guard !folders.isEmpty else {
-                infoAlert(String(localized: "Add a category first."))
+                noCategoriesAlert()
                 return
             }
             let popup = NSPopUpButton(frame: NSRect(x: 0, y: 0, width: 260, height: 24),
@@ -57,8 +59,8 @@ public final class SnippetSaver: NSObject {
         let insertPopup = NSPopUpButton(frame: NSRect(x: 0, y: 0, width: 320, height: 24),
                                         pullsDown: false)
         insertPopup.addItem(withTitle: String(localized: "Insert placeholder…"))
-        for token in ["{clipboard}", "{uuid}", "{date:yyyy-MM-dd}",
-                      "{date:HH:mm}", "{date:yyyy-MM-dd HH:mm}"] {
+        for token in ["{clipboard}", "{uuid}", "{date:HH:mm}", "{date:yyyy-MM-dd}",
+                      "{date:dd.MM.yyyy}", "{date:yyyy-MM-dd HH:mm}"] {
             insertPopup.addItem(withTitle: token)
         }
         insertPopup.target = self
@@ -87,9 +89,19 @@ public final class SnippetSaver: NSObject {
         sender.selectItem(at: 0)
     }
 
-    public static func infoAlert(_ text: String) {
+    /// Переход в настройки (таб Snippets) из тупика «нет категорий»;
+    /// подключает MenuBuilder при создании окна настроек.
+    public static var onOpenSettings: (@MainActor () -> Void)?
+
+    /// Тупик «нет категорий»: [Open Settings] ведёт в таб Snippets,
+    /// контекст клипа теряется — правый клик повторяется после создания.
+    private static func noCategoriesAlert() {
         let alert = NSAlert()
-        alert.messageText = text
-        alert.runModal()
+        alert.messageText = String(localized: "Add a category first.")
+        alert.addButton(withTitle: String(localized: "open.settings"))
+        alert.addButton(withTitle: String(localized: "Cancel"))
+        if alert.runModal() == .alertFirstButtonReturn {
+            onOpenSettings?()
+        }
     }
 }

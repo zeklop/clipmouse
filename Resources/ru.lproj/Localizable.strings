@@ -1,4 +1,4 @@
-/* ClipMouse — Русский */
+/* ClipMouse — русский */
 
 /* Жизненный цикл приложения */
 "Welcome to ClipMouse" = "Добро пожаловать в ClipMouse";
@@ -32,15 +32,8 @@
 "awake.remaining" = "Бодрствование: %@ осталось";
 "Awake: indefinite" = "Бодрствование: бессрочно";
 
-/* Меню — Сниппеты */
-"Snippets ▸" = "Сниппеты ▸";
-"Add Snippet…" = "Добавить сниппет…";
-"Add Category…" = "Добавить категорию…";
-"Delete Category ▸" = "Удалить категорию ▸";
-"Delete the category and its snippets" = "Удалить категорию и все её сниппеты";
-"edit.snippet" = "Редактировать «%@»…";
-"delete.snippet" = "Удалить «%@»";
-"Hold ⌥ to edit · ⌥⇧ to delete" = "Удерживайте ⌥ для редактирования · ⌥⇧ для удаления";
+/* Меню — Сниппеты (только вставка, управление — в настройках) */
+"Manage Snippets…" = "Управление сниппетами…";
 
 /* Меню — Нижняя часть */
 "Search…" = "Поиск…";
@@ -52,11 +45,12 @@
 
 /* Диалоги сниппетов */
 "Add a category first." = "Сначала добавьте категорию.";
+"open.settings" = "Открыть настройки";
 "New Category" = "Новая категория";
-"Name:" = "Название:";
 "Category name" = "Название категории";
 "delete.category" = "Удалить категорию «%@»?";
 "delete.category.snippets" = "Будет удалено сниппетов: %d.";
+"Delete the category and its snippets" = "Удалить категорию и все её сниппеты";
 "Delete" = "Удалить";
 "Cancel" = "Отмена";
 "Add Snippet" = "Добавить сниппет";
@@ -73,36 +67,57 @@
 "never.save.from" = "Никогда не сохранять из «%@»";
 "temporary.label" = "временный";
 
-/* Настройки — секции */
+/* Настройки — табы и секции */
 "General" = "Основные";
+"Snippets" = "Сниппеты";
+"Security" = "Безопасность";
+"About" = "О программе";
 "History" = "История";
-"Paste" = "Вставка";
-"security.section" = "Безопасность — не сохранять буфер из:";
 "Awake" = "Бодрствование";
 
 /* Настройки — Основные */
 "Launch at Login" = "Запускать при входе";
 "Middle mouse button → right ⌘" = "Средняя кнопка мыши → правый ⌘";
-"shortcuts.hint" = "Горячие клавиши: История ⌘⇧V · Сниппеты ⌘⇧B";
-
-/* Настройки — История */
 "Keep last (10…500)" = "Хранить последних (10…500)";
 "Delete after days (1…365)" = "Удалять через дней (1…365)";
 "Show in menu (5…30)" = "Показывать в меню (5…30)";
 "Clear All History…" = "Очистить всю историю…";
-
-/* Настройки — Вставка */
 "Paste immediately after selecting (⌘V)" = "Вставлять сразу после выбора (⌘V)";
-"paste.hint" = "Без этого выбор записи только заполнит буфер обмена.";
-
-/* Настройки — Безопасность */
-"+ Add running app…" = "+ Добавить запущенное приложение…";
-"Remove from the list" = "Удалить из списка";
-"Temporary secrets lifetime, minutes (5…1440)" = "Срок жизни временных секретов, минут (5…1440)";
 
 /* Настройки — Бодрствование */
 "Icon toggle duration" = "Длительность тоггла иконки";
 "Turn off below battery % (5…100)" = "Выключать при заряде батареи ниже % (5…100)";
+
+/* Настройки — таб «Сниппеты» */
+"Categories" = "Категории";
+"snippets.in.folder" = "Сниппеты в «%@»";
+"+ Add" = "+ Добавить";
+"Edit…" = "Изменить…";
+"snippet.delete.confirm" = "Удалить сниппет «%@»?";
+
+/* Настройки — таб «Безопасность» */
+"+ Add running app…" = "+ Добавить запущенное приложение…";
+"Remove from the list" = "Удалить из списка";
+"security.blocked.header" = "Заблокированные приложения";
+"security.blocked.hint" = "Клипы, скопированные в этих приложениях, не сохраняются в историю";
+"security.secrets.header" = "Временные секреты";
+"security.secrets.toggle" = "Временная защита секретов (автоудаление)";
+"security.ttl" = "Срок жизни, минуты (5…1440)";
+"security.secrets.hint" = "Похожие на секреты клипы удаляются автоматически по истечении срока";
+
+/* Настройки — таб «О программе» */
+"about.version" = "Версия %@";
+"about.tagline" = "История буфера, сниппеты и бодрствование";
+"GitHub" = "GitHub";
+"MIT License" = "MIT License";
+"about.shortcuts.header" = "Горячие клавиши";
+"about.shortcuts.history" = "⌘⇧V — Открыть меню истории";
+"about.shortcuts.snippets" = "⌘⇧B — Открыть меню сниппетов";
+"about.shortcuts.awake" = "Правый клик / ⌥-клик по иконке — Переключить Awake";
+"about.shortcuts.plain" = "⌥ при выборе клипа в поиске — Вставить как plain text";
+"about.shortcuts.posix" = "⌘ при выборе клипа в поиске — Вставить как POSIX-путь";
+"about.shortcuts.saveSnippet" = "Правый клик по клипу — Сохранить как сниппет";
+"about.shortcuts.settings" = "⌘, — Настройки";
 
 /* Настройки — Футер и окно */
 "footer.version" = "ClipMouse %@ · zeklop";
