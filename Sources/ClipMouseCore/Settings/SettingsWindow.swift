@@ -37,6 +37,7 @@ public final class SettingsWindowController: NSObject {
     private var addButton: NSButton!
     private var secretsCheckbox: NSButton!
     private var secretTTLField: NSTextField!
+    private var blockedScrollHeight: NSLayoutConstraint!
 
     /// Числовое поле → сеттер значения (controlTextDidEndEditing)
     private var fieldSetters: [ObjectIdentifier: (String) -> Void] = [:]
@@ -115,7 +116,7 @@ public final class SettingsWindowController: NSObject {
         footer.toolTip = "https://github.com/zeklop/clipmouse"
         footer.translatesAutoresizingMaskIntoConstraints = false
 
-        let root = NSView(frame: NSRect(x: 0, y: 0, width: 620, height: 470))
+        let root = NSView(frame: NSRect(x: 0, y: 0, width: 620, height: 500))
         root.addSubview(tabView)
         root.addSubview(footer)
         NSLayoutConstraint.activate([
@@ -132,7 +133,7 @@ public final class SettingsWindowController: NSObject {
         w.title = String(localized: "ClipMouse Settings")
         w.styleMask = [.titled, .closable]
         w.isReleasedWhenClosed = false
-        w.setContentSize(NSSize(width: 620, height: 470))
+        w.setContentSize(NSSize(width: 620, height: 500))
         window = w
         self.tabView = tabView
     }
@@ -239,6 +240,13 @@ public final class SettingsWindowController: NSObject {
         fieldSetters[ObjectIdentifier(field)] = save
     }
 
+    /// Ревизия 19: колонка подписей sized по самой длинной локализованной
+    /// подписи таба, а не хардкодом (переводы разной длины — localization.md).
+    private static func captionWidth(_ captions: [String]) -> CGFloat {
+        let attrs: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 13)]
+        return ceil(captions.map { ($0 as NSString).size(withAttributes: attrs).width }.max() ?? 0)
+    }
+
     // MARK: - Таб General
 
     private func buildGeneralTab() -> NSView {
@@ -257,20 +265,29 @@ public final class SettingsWindowController: NSObject {
 
         // History
         section(String(localized: "History"), in: stack)
+        // ревизия 19: колонка подписей — по замеру, не харкод 250
+        let captions = [String(localized: "Keep last (10…500)"),
+                        String(localized: "Delete after days (1…365)"),
+                        String(localized: "Show in menu (5…30)"),
+                        String(localized: "Icon toggle duration"),
+                        String(localized: "Turn off below battery % (5…100)")]
+        let cw = Self.captionWidth(captions)
         keepLastField = numberField(value: prefs.historyLimit,
                                      action: #selector(keepLastChanged)) { self.prefs.setHistoryLimit($0) }
-        row(caption: String(localized: "Keep last (10…500)"), view: keepLastField, in: stack)
+        row(caption: captions[0], view: keepLastField, in: stack, captionWidth: cw)
         expireDaysField = numberField(value: prefs.historyExpireDays,
                                       action: #selector(expireChanged)) { self.prefs.setHistoryExpireDays($0) }
-        row(caption: String(localized: "Delete after days (1…365)"), view: expireDaysField, in: stack)
+        row(caption: captions[1], view: expireDaysField, in: stack, captionWidth: cw)
         inlineCountField = numberField(value: prefs.menuInlineCount,
                                        action: #selector(inlineChanged)) { self.prefs.setMenuInlineCount($0) }
-        let inlineRow = row(caption: String(localized: "Show in menu (5…30)"), view: inlineCountField, in: stack)
+        row(caption: captions[2], view: inlineCountField, in: stack, captionWidth: cw)
+        // ревизия 19: деструктивная очистка — отдельной строкой, а не
+        // в чужой строке «Show in menu»
         let clear = NSButton(title: String(localized: "Clear All History…"), target: self,
                              action: #selector(clearHistory))
         clear.bezelStyle = .rounded
         clear.translatesAutoresizingMaskIntoConstraints = false
-        inlineRow.addArrangedSubview(clear)
+        stack.addArrangedSubview(clear)
         gap(in: stack)
 
         // Awake
@@ -279,10 +296,10 @@ public final class SettingsWindowController: NSObject {
         for (label, _) in Self.durations { durationPopup.addItem(withTitle: label) }
         durationPopup.target = self
         durationPopup.action = #selector(durationChanged)
-        row(caption: String(localized: "Icon toggle duration"), view: durationPopup, in: stack)
+        row(caption: captions[3], view: durationPopup, in: stack, captionWidth: cw)
         batteryField = numberField(value: prefs.awakeBatteryThreshold,
                                    action: #selector(batteryChanged)) { self.prefs.setAwakeBatteryThreshold($0) }
-        row(caption: String(localized: "Turn off below battery % (5…100)"), view: batteryField, in: stack)
+        row(caption: captions[4], view: batteryField, in: stack, captionWidth: cw)
 
         return scroll
     }
@@ -306,7 +323,10 @@ public final class SettingsWindowController: NSObject {
         // иначе «no common ancestor» (исключение глотается обвязкой
         // меню и окно молча не показывается)
         stack.addArrangedSubview(blockedScroll)
-        blockedScroll.heightAnchor.constraint(equalToConstant: 140).isActive = true
+        // ревизия 19: высота по числу строк (с потолком 140), а не
+        // фиксированные 140 с дырой при двух записях
+        blockedScrollHeight = blockedScroll.heightAnchor.constraint(equalToConstant: 140)
+        blockedScrollHeight.isActive = true
         blockedScroll.widthAnchor.constraint(equalTo: document.widthAnchor, constant: -40).isActive = true
         addButton = NSButton(title: String(localized: "+ Add running app…"), target: self,
                              action: #selector(addBlockedApp))
@@ -323,7 +343,8 @@ public final class SettingsWindowController: NSObject {
         stack.addArrangedSubview(secretsCheckbox)
         secretTTLField = numberField(value: prefs.secretTTLMinutes,
                                      action: #selector(secretTTLChanged)) { self.prefs.setSecretTTLMinutes($0) }
-        row(caption: String(localized: "security.ttl"), view: secretTTLField, in: stack)
+        row(caption: String(localized: "security.ttl"), view: secretTTLField, in: stack,
+            captionWidth: Self.captionWidth([String(localized: "security.ttl")]))
         let secretsHint = NSTextField(labelWithString: String(localized: "security.secrets.hint"))
         secretsHint.textColor = .secondaryLabelColor
         stack.addArrangedSubview(secretsHint)
@@ -354,6 +375,8 @@ public final class SettingsWindowController: NSObject {
         icon.imageScaling = .scaleProportionallyUpOrDown
         icon.widthAnchor.constraint(equalToConstant: 64).isActive = true
         icon.heightAnchor.constraint(equalToConstant: 64).isActive = true
+        // декоративная картинка — VoiceOver её пропускает (ревизия 19)
+        icon.setAccessibilityHidden(true)
         stack.addArrangedSubview(icon)
 
         let name = NSTextField(labelWithString: String(localized: "ClipMouse"))
@@ -395,14 +418,25 @@ public final class SettingsWindowController: NSObject {
         headerRow.widthAnchor.constraint(equalTo: document.widthAnchor, constant: -80).isActive = true
         stack.setCustomSpacing(4, after: headerRow)
         // Ключи — литералы: String(localized:) не принимает динамическую строку
-        for value in [String(localized: "about.shortcuts.history"),
+        let values = [String(localized: "about.shortcuts.history"),
                       String(localized: "about.shortcuts.snippets"),
                       String(localized: "about.shortcuts.awake"),
                       String(localized: "about.shortcuts.plain"),
                       String(localized: "about.shortcuts.posix"),
                       String(localized: "about.shortcuts.saveSnippet"),
-                      String(localized: "about.shortcuts.settings")] {
-            let (row, widthMatch) = shortcutRow(value, document: document)
+                      String(localized: "about.shortcuts.settings")]
+        // ревизия 19: колонка ключей — по самому длинному ключу, а не 170pt
+        let pairs: [(sym: String, desc: String)] = values.map {
+            let parts = $0.components(separatedBy: " — ")
+            return parts.count == 2 ? (parts[0], parts[1]) : ("", $0)
+        }
+        let mono = NSFont.monospacedSystemFont(ofSize: 12, weight: .semibold)
+        let keyWidth = ceil(pairs.map {
+            ($0.sym as NSString).size(withAttributes: [.font: mono]).width
+        }.max() ?? 0)
+        for pair in pairs {
+            let (row, widthMatch) = shortcutRow(pair.sym, desc: pair.desc,
+                                                keyWidth: keyWidth, document: document)
             stack.addArrangedSubview(row)
             // Констрейнт против document активируется после добавления
             // строки в иерархию — иначе «no common ancestor»
@@ -412,19 +446,19 @@ public final class SettingsWindowController: NSObject {
         return scroll
     }
 
-    /// Строка шортката: символы правой колонкой фиксированной ширины,
+    /// Строка шортката: символы правой колонкой замеренной ширины,
     /// описание — вторичным цветом; значение ключа — «символы — описание».
     /// Констрейнт ширины против document создаётся неактивным: его
     /// активирует вызывающий после добавления строки в иерархию.
-    private func shortcutRow(_ value: String, document: NSView)
+    private func shortcutRow(_ sym: String, desc: String, keyWidth: CGFloat,
+                             document: NSView)
         -> (row: NSView, widthMatch: NSLayoutConstraint) {
-        let parts = value.components(separatedBy: " — ")
-        let symLabel = NSTextField(labelWithString: parts.count == 2 ? parts[0] : "")
+        let symLabel = NSTextField(labelWithString: sym)
         symLabel.font = .monospacedSystemFont(ofSize: 12, weight: .semibold)
         symLabel.alignment = .right
         symLabel.translatesAutoresizingMaskIntoConstraints = false
-        symLabel.widthAnchor.constraint(equalToConstant: 170).isActive = true
-        let descLabel = NSTextField(labelWithString: parts.count == 2 ? parts[1] : value)
+        symLabel.widthAnchor.constraint(equalToConstant: keyWidth).isActive = true
+        let descLabel = NSTextField(labelWithString: desc)
         descLabel.textColor = .secondaryLabelColor
         let rowStack = NSStackView(views: [symLabel, descLabel])
         rowStack.orientation = .horizontal
@@ -467,6 +501,13 @@ public final class SettingsWindowController: NSObject {
             return (bundle, name, icon)
         }
         blockedTable.reloadData()
+        // ревизия 19: таблица сайзится к числу строк (потолок 140,
+        // минимум — одна строка), анимированно при add/remove
+        let pitch = blockedTable.rowHeight + blockedTable.intercellSpacing.height
+        let target = min(140, max(pitch, CGFloat(blockedData.count) * pitch))
+        NSAnimationContext.runAnimationGroup { _ in
+            blockedScrollHeight.animator().constant = target
+        }
     }
 
     // MARK: - Действия
@@ -644,6 +685,8 @@ extension SettingsWindowController: NSTableViewDataSource, NSTableViewDelegate {
         remove.controlSize = .small
         remove.translatesAutoresizingMaskIntoConstraints = false
         remove.toolTip = String(localized: "Remove from the list")
+        // VoiceOver читает смысл действия, а не «minus» (ревизия 19)
+        remove.setAccessibilityLabel(String(localized: "Remove from the list"))
         cell.addSubview(icon)
         cell.addSubview(label)
         cell.addSubview(remove)

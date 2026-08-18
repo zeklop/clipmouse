@@ -147,3 +147,6 @@
 
 /* Контекстное меню: сохранить клип как сниппет */
 "Save as Snippet…" = "Сохранить как сниппет…";
+
+/* Snippets tab: category selected but empty */
+"No snippets yet" = "Пока нет сниппетов";

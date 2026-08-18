@@ -23,6 +23,7 @@ final class SnippetsTab: NSObject {
     private let snippetsScroll = NSScrollView()
     private let snippetsHeader = NSTextField(labelWithString: "")
     private let emptyLabel = NSTextField(labelWithString: String(localized: "Add a category first."))
+    private let noSnippetsLabel = NSTextField(labelWithString: String(localized: "No snippets yet"))
     private let listStack = NSStackView()
     private let catRemoveButton = NSButton(title: "−", target: nil, action: nil)
     private let snipAddButton = NSButton(title: String(localized: "+ Add"), target: nil, action: nil)
@@ -52,6 +53,10 @@ final class SnippetsTab: NSObject {
         root.translatesAutoresizingMaskIntoConstraints = false
         emptyLabel.textColor = .secondaryLabelColor
         emptyLabel.isHidden = true
+        noSnippetsLabel.textColor = .secondaryLabelColor
+        noSnippetsLabel.isHidden = true
+        noSnippetsLabel.setContentHuggingPriority(NSLayoutConstraint.Priority(1), for: .horizontal)
+        noSnippetsLabel.alignment = .left
         snippetsHeader.font = .systemFont(ofSize: 12, weight: .semibold)
         // замерено пробой: в стеке с alignment .width лейблы с дефолтным
         // hugging (250) не растягиваются и прижимаются к правому краю —
@@ -104,8 +109,13 @@ final class SnippetsTab: NSObject {
         snipAddButton.bezelStyle = .rounded
         snipEditButton.bezelStyle = .rounded
         snipRemoveButton.bezelStyle = .rounded
+        // единый размер кнопок в обеих колонках (ревизия 19: ревью раскладки)
+        snipAddButton.controlSize = .small
+        snipEditButton.controlSize = .small
+        snipRemoveButton.controlSize = .small
         listStack.addArrangedSubview(snippetsHeader)
         listStack.addArrangedSubview(emptyLabel)
+        listStack.addArrangedSubview(noSnippetsLabel)
         listStack.addArrangedSubview(snippetsScroll)
         listStack.addArrangedSubview(NSStackView(views: [snipAddButton, snipEditButton, snipRemoveButton]))
 
@@ -403,8 +413,11 @@ final class SnippetsTab: NSObject {
     /// Пустое состояние и доступность кнопок по текущему выбору.
     private func updateChrome() {
         let hasFolders = !folders.isEmpty
+        let hasSnippets = !snippets.isEmpty
         emptyLabel.isHidden = hasFolders
-        snippetsScroll.isHidden = !hasFolders
+        // ревизия 19: пустое состояние «категория есть, сниппетов нет»
+        noSnippetsLabel.isHidden = !(hasFolders && !hasSnippets)
+        snippetsScroll.isHidden = !hasFolders || !hasSnippets
         catRemoveButton.isEnabled = hasFolders
         snipAddButton.isEnabled = hasFolders
         snipEditButton.isEnabled = selectedSnippet() != nil

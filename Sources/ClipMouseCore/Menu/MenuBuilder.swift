@@ -1,4 +1,5 @@
 import AppKit
+import ImageIO
 
 /// Сборка NSMenu (§8.2). Строки локализованы через String(localized:) / Localizable.strings.
 /// Меню строится заново на каждый показ из кеша, который обновляет
@@ -312,8 +313,7 @@ public final class MenuBuilder: NSObject {
             // конфликта нет — эвристики применяются только к .string без blob
             image = Self.tintedSymbol("clock", color: .systemOrange)
             item.toolTip = String(localized: "Temporary — looks like a secret, will be deleted automatically")
-        } else if let blob = clip.blob, let img = NSImage(data: blob) {
-            img.size = NSSize(width: 16, height: 16)
+        } else if let blob = clip.blob, let img = Self.menuThumbnail(from: blob) {
             image = img
             item.toolTip = clip.sourceBundle
         } else {
@@ -334,6 +334,20 @@ public final class MenuBuilder: NSObject {
         }
         item.view = view
         return item
+    }
+
+    /// Ревизия 19: даунсэмплинг превью через ImageIO. NSImage(data:)
+    /// декодирует blob целиком (скриншоты бывают мегабайтными), а картинка
+    /// в меню — 16 pt; декодируем сразу в целевой размер (32 px под Retina).
+    private static func menuThumbnail(from data: Data, maxPixel: CGFloat = 32) -> NSImage? {
+        guard let src = CGImageSourceCreateWithData(data as CFData, nil),
+              let cg = CGImageSourceCreateThumbnailAtIndex(src, 0, [
+                  kCGImageSourceCreateThumbnailFromImageAlways: true,
+                  kCGImageSourceShouldCacheImmediately: true,
+                  kCGImageSourceCreateThumbnailWithTransform: true,
+                  kCGImageSourceThumbnailMaxPixelSize: maxPixel,
+              ] as CFDictionary) else { return nil }
+        return NSImage(cgImage: cg, size: NSSize(width: 16, height: 16))
     }
 
     /// SF-символ, покрашенный в цвет: template-картинка + маска destinationIn
@@ -483,6 +497,29 @@ private final class ClipItemView: NSView {
         self.title = title
         self.image = image
         super.init(frame: .zero)
+    }
+
+    // MARK: Доступность (ревизия 19): view сама по себе элемент — VoiceOver
+    // читает заголовок клипа, press (primary action) вставляет, кастомное
+    // действие сохраняет в сниппеты (аналог правого клика).
+    override func isAccessibilityElement() -> Bool { true }
+
+    override func accessibilityLabel() -> String? { title }
+
+    override func accessibilityPerformPress() -> Bool {
+        fire(right: false)
+        return true
+    }
+
+    override func accessibilityCustomActions() -> [NSAccessibilityCustomAction]? {
+        [NSAccessibilityCustomAction(name: String(localized: "Save as Snippet…"),
+                                     target: self,
+                                     selector: #selector(accessibilitySaveAsSnippet))]
+    }
+
+    @objc private func accessibilitySaveAsSnippet() -> Bool {
+        fire(right: true)
+        return true
     }
 
     @available(*, unavailable)

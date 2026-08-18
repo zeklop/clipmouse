@@ -147,3 +147,6 @@
 
 /* Context menu: save the clip as a snippet */
 "Save as Snippet…" = "Save as Snippet…";
+
+/* Snippets tab: category selected but empty */
+"No snippets yet" = "No snippets yet";
