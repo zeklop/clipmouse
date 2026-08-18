@@ -57,11 +57,21 @@ public final class SettingsWindowController: NSObject {
     public func show(tab: Tab = .general) {
         if window == nil { build() }
         syncFromPrefs()
-        snippetsTab?.reload()
+        if let snippetsTab {
+            Task { @MainActor in await snippetsTab.reload() }
+        }
         tabView?.selectTabViewItem(withIdentifier: tab.rawValue)
         window?.center()
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    /// Ревизия 18: инлайн-редактор вместо диалогов — открыть таб Snippets
+    /// и начать добавление с предзаполнением (правый клик по клипу
+    /// в меню и в поиске). Категория-приёмник — выделенная слева.
+    public func beginSnippetAdd(title: String, content: String) {
+        show(tab: .snippets)
+        snippetsTab?.beginAdd(title: title, content: content)
     }
 
     // MARK: - Сборка
@@ -72,24 +82,24 @@ public final class SettingsWindowController: NSObject {
 
         let general = NSTabViewItem(identifier: Tab.general.rawValue)
         general.label = String(localized: "General")
-        general.view = buildGeneralTab()
+        general.view = hosted(buildGeneralTab())
         tabView.addTabViewItem(general)
 
         let snippetsItem = NSTabViewItem(identifier: Tab.snippets.rawValue)
         snippetsItem.label = String(localized: "Snippets")
         let snippetsTab = SnippetsTab(store: snippetsStore)
         self.snippetsTab = snippetsTab
-        snippetsItem.view = snippetsTab.root
+        snippetsItem.view = hosted(snippetsTab.root)
         tabView.addTabViewItem(snippetsItem)
 
         let security = NSTabViewItem(identifier: Tab.security.rawValue)
         security.label = String(localized: "Security")
-        security.view = buildSecurityTab()
+        security.view = hosted(buildSecurityTab())
         tabView.addTabViewItem(security)
 
         let about = NSTabViewItem(identifier: Tab.about.rawValue)
         about.label = String(localized: "About")
-        about.view = buildAboutTab()
+        about.view = hosted(buildAboutTab())
         tabView.addTabViewItem(about)
 
         // Футер: версия и автор (мелко) — весь колонтитул ведёт в репозиторий
@@ -105,7 +115,7 @@ public final class SettingsWindowController: NSObject {
         footer.toolTip = "https://github.com/zeklop/clipmouse"
         footer.translatesAutoresizingMaskIntoConstraints = false
 
-        let root = NSView(frame: NSRect(x: 0, y: 0, width: 620, height: 540))
+        let root = NSView(frame: NSRect(x: 0, y: 0, width: 620, height: 470))
         root.addSubview(tabView)
         root.addSubview(footer)
         NSLayoutConstraint.activate([
@@ -122,9 +132,29 @@ public final class SettingsWindowController: NSObject {
         w.title = String(localized: "ClipMouse Settings")
         w.styleMask = [.titled, .closable]
         w.isReleasedWhenClosed = false
-        w.setContentSize(NSSize(width: 620, height: 540))
+        w.setContentSize(NSSize(width: 620, height: 470))
         window = w
         self.tabView = tabView
+    }
+
+    /// NSTabView сайзит view таба фреймом, а auto-layout-вью с констрейнтами,
+    /// ссылающимися на неё саму (scroll: document.width == scroll.width),
+    /// схлопывается в ноль. Поэтому контент каждого таба заворачиваем
+    /// в frame-based контейнер: контейнер тянется фреймом, контент —
+    /// autoresizingMask.
+    private func hosted(_ content: NSView) -> NSView {
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 604, height: 410))
+        content.translatesAutoresizingMaskIntoConstraints = true
+        content.frame = container.bounds
+        content.autoresizingMask = [.width, .height]
+        container.addSubview(content)
+        return container
+    }
+
+    /// Документ скролла — flipped: когда контент короче видимой области,
+    /// он прижат к верху, а не к низу (иначе дыра сверху).
+    private final class FlippedDoc: NSView {
+        override var isFlipped: Bool { true }
     }
 
     /// Вертикальный стек в скролле — паттерн дотабового окна настроек.
@@ -138,14 +168,14 @@ public final class SettingsWindowController: NSObject {
         stack.spacing = 8
         stack.edgeInsets = NSEdgeInsets(top: 16, left: 20, bottom: 16, right: 20)
         stack.translatesAutoresizingMaskIntoConstraints = false
-        let document = NSView()
+        let document = FlippedDoc()
         document.translatesAutoresizingMaskIntoConstraints = false
         document.addSubview(stack)
         let scroll = NSScrollView()
         scroll.documentView = document
         scroll.hasVerticalScroller = true
         scroll.borderType = .noBorder
-        scroll.translatesAutoresizingMaskIntoConstraints = false
+        // Фрейм скролла ведёт hosted-контейнер (autoresizing), не auto-layout
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: document.leadingAnchor),
             stack.trailingAnchor.constraint(equalTo: document.trailingAnchor),
@@ -272,9 +302,12 @@ public final class SettingsWindowController: NSObject {
         blockedScroll.documentView = blockedTable
         blockedScroll.hasVerticalScroller = true
         blockedScroll.translatesAutoresizingMaskIntoConstraints = false
+        // Сначала в иерархию, потом констрейнты против document —
+        // иначе «no common ancestor» (исключение глотается обвязкой
+        // меню и окно молча не показывается)
+        stack.addArrangedSubview(blockedScroll)
         blockedScroll.heightAnchor.constraint(equalToConstant: 140).isActive = true
         blockedScroll.widthAnchor.constraint(equalTo: document.widthAnchor, constant: -40).isActive = true
-        stack.addArrangedSubview(blockedScroll)
         addButton = NSButton(title: String(localized: "+ Add running app…"), target: self,
                              action: #selector(addBlockedApp))
         addButton.bezelStyle = .rounded
@@ -349,8 +382,8 @@ public final class SettingsWindowController: NSObject {
         let separator = NSBox()
         separator.boxType = .separator
         separator.translatesAutoresizingMaskIntoConstraints = false
-        separator.widthAnchor.constraint(equalTo: document.widthAnchor, constant: -80).isActive = true
         stack.addArrangedSubview(separator)
+        separator.widthAnchor.constraint(equalTo: document.widthAnchor, constant: -80).isActive = true
         stack.setCustomSpacing(12, after: separator)
 
         // Shortcuts: список пар «модификаторы — описание»
@@ -358,8 +391,8 @@ public final class SettingsWindowController: NSObject {
         header.font = .systemFont(ofSize: 13, weight: .semibold)
         let headerRow = NSStackView(views: [header])
         headerRow.translatesAutoresizingMaskIntoConstraints = false
-        headerRow.widthAnchor.constraint(equalTo: document.widthAnchor, constant: -80).isActive = true
         stack.addArrangedSubview(headerRow)
+        headerRow.widthAnchor.constraint(equalTo: document.widthAnchor, constant: -80).isActive = true
         stack.setCustomSpacing(4, after: headerRow)
         // Ключи — литералы: String(localized:) не принимает динамическую строку
         for value in [String(localized: "about.shortcuts.history"),
@@ -369,7 +402,11 @@ public final class SettingsWindowController: NSObject {
                       String(localized: "about.shortcuts.posix"),
                       String(localized: "about.shortcuts.saveSnippet"),
                       String(localized: "about.shortcuts.settings")] {
-            stack.addArrangedSubview(shortcutRow(value, document: document))
+            let (row, widthMatch) = shortcutRow(value, document: document)
+            stack.addArrangedSubview(row)
+            // Констрейнт против document активируется после добавления
+            // строки в иерархию — иначе «no common ancestor»
+            widthMatch.isActive = true
         }
 
         return scroll
@@ -377,7 +414,10 @@ public final class SettingsWindowController: NSObject {
 
     /// Строка шортката: символы правой колонкой фиксированной ширины,
     /// описание — вторичным цветом; значение ключа — «символы — описание».
-    private func shortcutRow(_ value: String, document: NSView) -> NSView {
+    /// Констрейнт ширины против document создаётся неактивным: его
+    /// активирует вызывающий после добавления строки в иерархию.
+    private func shortcutRow(_ value: String, document: NSView)
+        -> (row: NSView, widthMatch: NSLayoutConstraint) {
         let parts = value.components(separatedBy: " — ")
         let symLabel = NSTextField(labelWithString: parts.count == 2 ? parts[0] : "")
         symLabel.font = .monospacedSystemFont(ofSize: 12, weight: .semibold)
@@ -390,8 +430,10 @@ public final class SettingsWindowController: NSObject {
         rowStack.orientation = .horizontal
         rowStack.spacing = 12
         rowStack.translatesAutoresizingMaskIntoConstraints = false
-        rowStack.widthAnchor.constraint(equalTo: document.widthAnchor, constant: -80).isActive = true
-        return rowStack
+        // Не активировать здесь: rowStack ещё не в иерархии
+        let widthMatch = rowStack.widthAnchor.constraint(equalTo: document.widthAnchor,
+                                                         constant: -80)
+        return (rowStack, widthMatch)
     }
 
     // MARK: - Синхронизация

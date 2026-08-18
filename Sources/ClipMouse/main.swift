@@ -148,8 +148,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                                       prefs: Prefs())
                 self.controller = controller
 
-                // URL-схема (§9 Фаза 5): только /caffeine/activate и
-                // /caffeine/deactivate; один CFBundleURLTypes ничего не вызывает
+                // URL-схема (§9 Фаза 5): /caffeine/activate, /caffeine/deactivate,
+                // /settings/<tab>; один CFBundleURLTypes ничего не вызывает
                 NSAppleEventManager.shared().setEventHandler(
                     self, andSelector: #selector(handleGetURL(_:replyEvent:)),
                     forEventClass: AEEventClass(kInternetEventClass),
@@ -227,8 +227,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// clipmouse://caffeine/activate?seconds=300 и /caffeine/deactivate.
-    /// seconds клампится в 60…86400, остальное игнорируется (§9 Фаза 5).
+    /// clipmouse://caffeine/activate?seconds=300, /caffeine/deactivate
+    /// и /settings/<tab>. seconds клампится в 60…86400, остальное игнорируется (§9 Фаза 5).
     @objc private func handleGetURL(_ event: NSAppleEventDescriptor, replyEvent: NSAppleEventDescriptor) {
         guard let raw = event.paramDescriptor(forKeyword: keyDirectObject)?.stringValue,
               let url = URL(string: raw),
@@ -237,6 +237,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // clipmouse://caffeine/activate → host = "caffeine", path = "/activate"
         let host = url.host?.lowercased() ?? ""
         let actions = url.pathComponents.filter { $0 != "/" }
+        // clipmouse://settings/<tab> — открыть настройки на табе:
+        // тесты раскладки и внешняя автоматизация
+        if host == "settings", actions.count == 1 {
+            let tab = SettingsWindowController.Tab(rawValue: actions[0]) ?? .general
+            controller?.showSettings(tab: tab)
+            return
+        }
         guard host == "caffeine", actions.count == 1 else {
             Log.awake.notice("URL-схема: \(url.absoluteString, privacy: .public) игнорируется")
             return

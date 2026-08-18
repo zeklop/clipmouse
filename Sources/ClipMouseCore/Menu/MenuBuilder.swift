@@ -17,6 +17,11 @@ public final class MenuBuilder: NSObject {
         s.onMouseToggle = { [weak self] on in self?.onMouseToggle?(on) }
         // Тупик «нет категорий» из правого клика по клипу ведёт во вкладку Snippets
         SnippetSaver.onOpenSettings = { [weak s] in s?.show(tab: .snippets) }
+        // Ревизия 18: правый клик по клипу — инлайн-редактор таба Snippets
+        // с предзаполнением, без внешних диалогов
+        SnippetSaver.onEditRequest = { [weak s] clip in
+            s?.beginSnippetAdd(title: clip.preview, content: clip.text ?? "")
+        }
         return s
     }()
 
@@ -232,7 +237,7 @@ public final class MenuBuilder: NSObject {
     }
 
     @objc private func openSnippetsSettings() {
-        settings.show(tab: .snippets)
+        showSettings(tab: .snippets)
     }
 
     private func snippetItem(_ snippet: SnippetStore.Snippet) -> NSMenuItem {
@@ -400,8 +405,14 @@ public final class MenuBuilder: NSObject {
         SnippetSaver.saveClipAsSnippet(clip, store: snippetsStore)
     }
 
+    /// Открыть настройки на указанном табе — меню и URL-схема
+    /// clipmouse://settings/<tab> (тесты раскладки, внешняя автоматизация).
+    func showSettings(tab: SettingsWindowController.Tab) {
+        settings.show(tab: tab)
+    }
+
     @objc private func openSettings() {
-        settings.show()
+        showSettings(tab: .general)
     }
 
     @objc private func openSearch() {

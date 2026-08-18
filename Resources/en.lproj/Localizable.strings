@@ -47,7 +47,7 @@
 "Add a category first." = "Add a category first.";
 "open.settings" = "Open Settings";
 "New Category" = "New Category";
-"Category name" = "Category name";
+"Save" = "Save";
 "delete.category" = "Delete category \"%@\"?";
 "delete.category.snippets" = "%d snippet(s) will be deleted.";
 "Delete the category and its snippets" = "Delete the category and its snippets";

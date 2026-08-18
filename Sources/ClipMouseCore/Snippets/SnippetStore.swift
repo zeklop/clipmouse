@@ -102,6 +102,15 @@ public actor SnippetStore {
         return sqlite3_last_insert_rowid(db)
     }
 
+    /// Переименование категории (ревизия 18: инлайн в таблице).
+    public func updateCategory(id: Int64, title: String) throws {
+        let stmt = try Self.prepare(db, "UPDATE folders SET title = ?1 WHERE id = ?2;")
+        defer { sqlite3_finalize(stmt) }
+        sqlite3_bind_text(stmt, 1, title, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_int64(stmt, 2, id)
+        _ = sqlite3_step(stmt)
+    }
+
     /// Удаляет категорию вместе со сниппетами.
     public func deleteCategory(id: Int64) throws {
         let s1 = try Self.prepare(db, "DELETE FROM snippets WHERE folder_id = ?1;")
@@ -114,7 +123,8 @@ public actor SnippetStore {
         _ = sqlite3_step(s2)
     }
 
-    public func insertSnippet(folderID: Int64, title: String, content: String) throws {
+    @discardableResult
+    public func insertSnippet(folderID: Int64, title: String, content: String) throws -> Int64 {
         let stmt = try Self.prepare(db, """
         INSERT INTO snippets (folder_id, title, content, position)
         VALUES (?1, ?2, ?3, (SELECT COALESCE(MAX(position), -1) + 1 FROM snippets WHERE folder_id = ?1));
@@ -123,7 +133,10 @@ public actor SnippetStore {
         sqlite3_bind_int64(stmt, 1, folderID)
         sqlite3_bind_text(stmt, 2, title, -1, SQLITE_TRANSIENT)
         sqlite3_bind_text(stmt, 3, content, -1, SQLITE_TRANSIENT)
-        _ = sqlite3_step(stmt)
+        guard sqlite3_step(stmt) == SQLITE_DONE else {
+            throw ClipStore.StoreError.sql(String(cString: sqlite3_errmsg(db)))
+        }
+        return sqlite3_last_insert_rowid(db)
     }
 
     public func updateSnippet(id: Int64, title: String, content: String) throws {

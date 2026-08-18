@@ -193,6 +193,11 @@ public final class StatusItemController: NSObject {
 
     /// Точка входа для глобального хоткея ⌘⇧V: открытая панель — закрыть,
     /// меню не открывать (§8.1).
+    /// Диплинк clipmouse://settings/<tab>: открыть настройки на табе.
+    public func showSettings(tab: SettingsWindowController.Tab) {
+        menuBuilder.showSettings(tab: tab)
+    }
+
     public func showMenu() {
         if search.isVisible {
             search.hide()

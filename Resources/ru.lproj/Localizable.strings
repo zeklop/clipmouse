@@ -47,7 +47,7 @@
 "Add a category first." = "Сначала добавьте категорию.";
 "open.settings" = "Открыть настройки";
 "New Category" = "Новая категория";
-"Category name" = "Название категории";
+"Save" = "Сохранить";
 "delete.category" = "Удалить категорию «%@»?";
 "delete.category.snippets" = "Будет удалено сниппетов: %d.";
 "Delete the category and its snippets" = "Удалить категорию и все её сниппеты";

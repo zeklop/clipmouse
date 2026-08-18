@@ -15,6 +15,7 @@ internal/
 plans/
 .firecrawl/
 AGENTS.md
+ui-check-shots/
 
 # --- локальные конфиги IDE-агентов ---
 .zcode/
