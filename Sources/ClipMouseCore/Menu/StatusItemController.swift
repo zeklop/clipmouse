@@ -36,7 +36,10 @@ public final class StatusItemController: NSObject {
         super.init()
         menuBuilder.onSearch = { [weak self] in self?.showSearch() }
         awake?.onStateChange = { [weak self] in
-            MainActor.assumeIsolated { self?.refreshAwakeIndicators() }
+            MainActor.assumeIsolated {
+                self?.syncTooltipTimer()
+                self?.refreshAwakeIndicators()
+            }
         }
 
         if let button = item.button {
@@ -129,6 +132,63 @@ public final class StatusItemController: NSObject {
         } else {
             button.toolTip = nil
         }
+    }
+
+    // MARK: Живой тултип Awake (§13.1, ревизия 13)
+
+    /// DispatchSourceTimer на main queue: обычный Timer замирает в
+    /// tracking-режиме (§2). Живёт только пока Awake активен с конечным
+    /// сроком; Indefinitely — статичный тултип без таймера.
+    private var tooltipTimer: DispatchSourceTimer?
+
+    /// Старт/стоп таймера тултипа по состоянию Awake: вызывается из
+    /// onStateChange. Из deinit не гасим (не-Sendable, Swift 6) —
+    /// стоп всегда проходит через onStateChange самого Awake.
+    private func syncTooltipTimer() {
+        if awake?.isActive == true, awake?.remaining() != nil {
+            startTooltipTimer()
+        } else {
+            stopTooltipTimer()
+        }
+    }
+
+    private func startTooltipTimer() {
+        stopTooltipTimer()
+        let t = DispatchSource.makeTimerSource(queue: .main)
+        t.schedule(deadline: .now() + 1, repeating: 1)
+        t.setEventHandler { [weak self] in
+            MainActor.assumeIsolated { self?.tooltipTick() }
+        }
+        t.resume()
+        tooltipTimer = t
+    }
+
+    private func stopTooltipTimer() {
+        tooltipTimer?.cancel()
+        tooltipTimer = nil
+    }
+
+    /// Тик раз в секунду: обновляет остаток в тултипе. Паттерн как в
+    /// MenuBuilder.awakeTick — стоп по выключению, истечению и нулю.
+    private func tooltipTick() {
+        guard let awake, awake.isActive else {
+            stopTooltipTimer()
+            refreshAwakeIndicators()
+            return
+        }
+        guard let rem = awake.remaining() else {
+            // стал бессрочным — статичный тултип, таймер не нужен
+            stopTooltipTimer()
+            refreshAwakeIndicators()
+            return
+        }
+        guard rem.seconds > 0 else {
+            // ноль: остаток гасим; кольца синхронизирует periodicCheck
+            stopTooltipTimer()
+            item.button?.toolTip = nil
+            return
+        }
+        refreshAwakeIndicators()
     }
 
     /// Точка входа для глобального хоткея ⌘⇧V: открытая панель — закрыть,
