@@ -20,7 +20,6 @@ public final class MenuBuilder: NSObject {
 
     public var recentClips: [Clip] = []
     public var snippetsByFolder: [(folder: SnippetStore.Folder, items: [SnippetStore.Snippet])] = []
-    public var secretNotice: (clip: Clip, at: Date)?
     public var hotkeyError = false
     public weak var awake: AwakeController?
     /// Куда вставлять из меню — фронтом до клика по иконке (§8.4)
@@ -66,17 +65,6 @@ public final class MenuBuilder: NSObject {
     // MARK: - Секции
 
     private func fillHistory(in menu: NSMenu) {
-        // Первым пунктом 120 с висит предупреждение о секрете (§12)
-        if let notice = secretNotice,
-           Date().timeIntervalSince(notice.at) <= 120 {
-            let item = NSMenuItem(
-                title: String(localized: "Not saved: looks like a secret (⌥ — save anyway)"),
-                action: #selector(secretNoticeAction), keyEquivalent: "")
-            item.target = self
-            menu.addItem(item)
-            menu.addItem(.separator())
-        }
-
         let inline = recentClips.prefix(max(prefs.menuInlineCount, 0))
         if inline.isEmpty {
             let empty = NSMenuItem(title: String(localized: "History is empty"), action: nil, keyEquivalent: "")
@@ -86,6 +74,11 @@ public final class MenuBuilder: NSObject {
             for clip in inline {
                 menu.addItem(historyItem(for: clip))
             }
+            menu.addItem(.separator())
+            let hint = NSMenuItem(title: String(localized: "Right-click a clip to save it as a snippet"),
+                                  action: nil, keyEquivalent: "")
+            hint.isEnabled = false
+            menu.addItem(hint)
         }
     }
 
@@ -343,6 +336,9 @@ public final class MenuBuilder: NSObject {
         Permissions.openAccessibilitySettings()
     }
 
+    /// Пункт истории на кастомном view (ClipItemView): NSMenu не даёт
+    /// контекстных действий, а view сам ловит клики — левый вставляет,
+    /// правый открывает диалог «сохранить как сниппет».
     private func historyItem(for clip: Clip) -> NSMenuItem {
         var title = clip.preview
         let cap = prefs.menuTitleLength
@@ -350,13 +346,52 @@ public final class MenuBuilder: NSObject {
         let item = NSMenuItem(title: title, action: #selector(selectClip), keyEquivalent: "")
         item.target = self
         item.representedObject = clip.id
-        item.toolTip = clip.sourceBundle
 
-        if let blob = clip.blob, let img = NSImage(data: blob) {
-            img.size = NSSize(width: 18, height: 18)
-            item.image = img
+        var image: NSImage?
+        if clip.expiresAt != nil {
+            // Временный клип (секрет §12): оранжевые часы вместо превью-картинки;
+            // конфликта нет — эвристики применяются только к .string без blob
+            image = Self.tintedSymbol("clock", color: .systemOrange)
+            item.toolTip = String(localized: "Temporary — looks like a secret, will be deleted automatically")
+        } else if let blob = clip.blob, let img = NSImage(data: blob) {
+            img.size = NSSize(width: 16, height: 16)
+            image = img
+            item.toolTip = clip.sourceBundle
+        } else {
+            item.toolTip = clip.sourceBundle
         }
+
+        let view = ClipItemView(title: title, image: image)
+        // NSMenu не автосайзит кастомные view — без явного фрейма пункт
+        // схлопывается в ноль и не рисуется; ширина растягивается маской.
+        view.frame = NSRect(origin: .zero, size: view.intrinsicContentSize)
+        view.autoresizingMask = .width
+        view.onLeftClick = { [weak item] in
+            guard let item, let action = item.action else { return }
+            _ = NSApp.sendAction(action, to: item.target, from: item)
+        }
+        view.onRightClick = { [weak self] in
+            self?.saveClipAsSnippet(clip)
+        }
+        item.view = view
         return item
+    }
+
+    /// SF-символ, покрашенный в цвет: template-картинка + маска destinationIn
+    /// (contentTintColor и paletteColors при ручном draw не применяются).
+    private static func tintedSymbol(_ name: String, color: NSColor) -> NSImage? {
+        guard let symbol = NSImage(systemSymbolName: name, accessibilityDescription: nil) else {
+            return nil
+        }
+        symbol.isTemplate = true
+        let cfg = NSImage.SymbolConfiguration(pointSize: 13, weight: .regular)
+        let sized = symbol.withSymbolConfiguration(cfg) ?? symbol
+        return NSImage(size: sized.size, flipped: false) { rect in
+            color.setFill()
+            rect.fill()
+            sized.draw(in: rect, from: .zero, operation: .destinationIn, fraction: 1)
+            return true
+        }
     }
 
     // MARK: - Действия
@@ -405,14 +440,10 @@ public final class MenuBuilder: NSObject {
         }
     }
 
-    /// Обычный клик — убрать предупреждение, ⌥+клик — сохранить всё-таки (§12).
-    @objc private func secretNoticeAction() {
-        let mods = NSEvent.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        if mods.contains(.option) {
-            Task { @MainActor in await monitor.saveBlockedSecret() }
-        } else {
-            Task { @MainActor in await monitor.clearBlockedSecretNotice() }
-        }
+    /// Правый клик по клипу в меню: сохранить как сниппет — общий код
+    /// с панелью поиска в SnippetSaver.
+    private func saveClipAsSnippet(_ clip: Clip) {
+        SnippetSaver.saveClipAsSnippet(clip, store: snippetsStore)
     }
 
     @objc private func openSettings() {
@@ -423,12 +454,12 @@ public final class MenuBuilder: NSObject {
 
     @objc private func addSnippetDialog() {
         guard !snippetsByFolder.isEmpty else {
-            Self.infoAlert(String(localized: "Add a category first."))
+            SnippetSaver.infoAlert(String(localized: "Add a category first."))
             return
         }
         let popup = NSPopUpButton(frame: NSRect(x: 0, y: 0, width: 260, height: 24), pullsDown: false)
         for group in snippetsByFolder { popup.addItem(withTitle: group.folder.title) }
-        guard let (title, content) = snippetDialog(title: "", content: "", accessory: popup)
+        guard let (title, content) = SnippetSaver.dialog(title: "", content: "", accessory: popup)
         else { return }
         let folder = snippetsByFolder[popup.indexOfSelectedItem].folder
         let store = snippetsStore
@@ -472,7 +503,7 @@ public final class MenuBuilder: NSObject {
     @objc private func editSnippetDialog(_ sender: NSMenuItem) {
         let id = Int64(sender.tag)
         guard let snippet = snippetsByFolder.flatMap(\.items).first(where: { $0.id == id }) else { return }
-        guard let (title, content) = snippetDialog(title: snippet.title,
+        guard let (title, content) = SnippetSaver.dialog(title: snippet.title,
                                                    content: snippet.content, accessory: nil)
         else { return }
         let store = snippetsStore
@@ -491,63 +522,6 @@ public final class MenuBuilder: NSObject {
         }
     }
 
-    /// Поле контента открытого диалога — для вставки плейсхолдеров
-    /// по клику (диалог модальный, поле одно).
-    private weak var dialogContentField: NSTextField?
-
-    /// Диалог «заголовок + контент» (+ опциональный выбор категории сверху
-    /// и списком плейсхолдеров с вставкой по клику — ревизия 8.1).
-    private func snippetDialog(title: String, content: String,
-                               accessory: NSView?) -> (String, String)? {
-        let alert = NSAlert()
-        alert.messageText = title.isEmpty ? String(localized: "Add Snippet") : String(localized: "Edit Snippet")
-        let stack = NSStackView(frame: NSRect(x: 0, y: 0, width: 320, height: 168))
-        stack.orientation = .vertical
-        stack.alignment = .leading
-        stack.spacing = 8
-        if let accessory { stack.addArrangedSubview(accessory) }
-
-        let titleField = NSTextField(frame: NSRect(x: 0, y: 0, width: 320, height: 24))
-        titleField.placeholderString = String(localized: "Title")
-        titleField.stringValue = title
-        let contentField = NSTextField(frame: NSRect(x: 0, y: 0, width: 320, height: 24))
-        contentField.placeholderString = String(localized: "Content")
-        contentField.stringValue = content
-
-        // Список плейсхолдеров: выбор пункта дописывает токен в контент
-        let insertPopup = NSPopUpButton(frame: NSRect(x: 0, y: 0, width: 320, height: 24),
-                                        pullsDown: false)
-        insertPopup.addItem(withTitle: String(localized: "Insert placeholder…"))
-        for token in ["{clipboard}", "{uuid}", "{date:yyyy-MM-dd}",
-                      "{date:HH:mm}", "{date:yyyy-MM-dd HH:mm}"] {
-            insertPopup.addItem(withTitle: token)
-        }
-        insertPopup.target = self
-        insertPopup.action = #selector(insertPlaceholder(_:))
-
-        stack.addArrangedSubview(titleField)
-        stack.addArrangedSubview(contentField)
-        stack.addArrangedSubview(insertPopup)
-        alert.accessoryView = stack
-        alert.addButton(withTitle: String(localized: "OK"))
-        alert.addButton(withTitle: String(localized: "Cancel"))
-
-        dialogContentField = contentField
-        defer { dialogContentField = nil }
-        guard alert.runModal() == .alertFirstButtonReturn else { return nil }
-        let t = titleField.stringValue.trimmingCharacters(in: .whitespaces)
-        let c = contentField.stringValue
-        guard !t.isEmpty, !c.isEmpty else { return nil }
-        return (t, c)
-    }
-
-    @objc private func insertPlaceholder(_ sender: NSPopUpButton) {
-        guard sender.indexOfSelectedItem > 0,
-              let token = sender.titleOfSelectedItem else { return }
-        dialogContentField?.stringValue += token
-        sender.selectItem(at: 0)
-    }
-
     private static func textDialog(message: String, label: String, placeholder: String) -> String? {
         let alert = NSAlert()
         alert.messageText = message
@@ -559,12 +533,6 @@ public final class MenuBuilder: NSObject {
         guard alert.runModal() == .alertFirstButtonReturn else { return nil }
         let value = field.stringValue.trimmingCharacters(in: .whitespaces)
         return value.isEmpty ? nil : value
-    }
-
-    private static func infoAlert(_ text: String) {
-        let alert = NSAlert()
-        alert.messageText = text
-        alert.runModal()
     }
 
     @objc private func openSearch() {
@@ -614,5 +582,86 @@ private extension DateFormatter {
     convenience init(format: String) {
         self.init()
         self.dateFormat = format
+    }
+}
+
+/// Пункт истории в меню на кастомном view. NSMenu не даёт контекстных
+/// действий на пунктах, поэтому view сама ловит клики: левый вызывает
+/// action пункта (вставка), правый — колбэк (сохранить в сниппеты).
+/// Оба клика сначала гасят tracking, иначе модальный диалог внутри
+/// menu tracking не работает, а действие дублируется после возврата.
+private final class ClipItemView: NSView {
+
+    var onLeftClick: (@MainActor () -> Void)?
+    var onRightClick: (@MainActor () -> Void)?
+    private let title: String
+    private let image: NSImage?
+    private static let inset: CGFloat = 10
+    private static let imageSize: CGFloat = 16
+
+    init(title: String, image: NSImage?) {
+        self.title = title
+        self.image = image
+        super.init(frame: .zero)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("не используется") }
+
+    private var highlighted: Bool { enclosingMenuItem?.isHighlighted ?? false }
+
+    private func titleAttributes() -> [NSAttributedString.Key: Any] {
+        [
+            .font: NSFont.menuFont(ofSize: 0),
+            .foregroundColor: highlighted ? NSColor.selectedMenuItemTextColor : NSColor.labelColor,
+        ]
+    }
+
+    override var intrinsicContentSize: NSSize {
+        let titleWidth = (title as NSString).size(withAttributes: titleAttributes()).width
+        let width = Self.inset * 2 + Self.imageSize + 6 + ceil(titleWidth)
+        return NSSize(width: min(width, 480), height: 22)
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        if highlighted {
+            NSColor.selectedContentBackgroundColor.setFill()
+            bounds.fill()
+        }
+        var x = Self.inset
+        if let image {
+            image.draw(at: NSPoint(x: x, y: bounds.midY - Self.imageSize / 2), from: .zero,
+                       operation: .sourceOver, fraction: 1)
+            x += Self.imageSize + 6
+        }
+        let attrs = titleAttributes()
+        let size = (title as NSString).size(withAttributes: attrs)
+        (title as NSString).draw(at: NSPoint(x: x, y: bounds.midY - size.height / 2),
+                                 withAttributes: attrs)
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        guard event.buttonNumber != 1 else { return } // правый — в rightMouseUp
+        fire(right: false)
+    }
+
+    override func rightMouseDown(with event: NSEvent) {
+        // перехват: без обработчика меню закрыла бы пункт как обычный выбор
+    }
+
+    override func rightMouseUp(with event: NSEvent) {
+        fire(right: true)
+    }
+
+    private func fire(right: Bool) {
+        guard let item = enclosingMenuItem else { return }
+        item.menu?.cancelTracking()
+        if right {
+            let cb = onRightClick
+            Task { @MainActor in cb?() }
+        } else {
+            let cb = onLeftClick
+            cb?()
+        }
     }
 }

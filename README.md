@@ -21,7 +21,7 @@
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license">
 </p>
 
-ClipMouse is a native macOS 26 menu bar agent. It replaces **ClipMenu 0.4.3**, a **Karabiner-Elements** rule and **KeepingYouAwake**: deduplicated clipboard history, Spotlight-style search, snippets with placeholders, secret protection and caffeine timers. No network, no telemetry, no dependencies.
+ClipMouse is a native macOS 26 menu bar agent. It replaces **ClipMenu 0.4.3**, a **mouse remapper** rule and a **keep-awake utility**: deduplicated clipboard history, Spotlight-style search, snippets with placeholders, secret protection and caffeine timers. No network, no telemetry, no dependencies.
 
 ## Why ClipMouse
 
@@ -33,15 +33,45 @@ Everything three utilities used to do — in one native app:
 | A Karabiner-Elements rule (middle button → right ⌘ for voice input) | Built-in remap — no extra config files |
 | KeepingYouAwake | Awake timers live in the icon's right-click menu |
 
-The original pain: the old ClipMenu stored its clipboard history (`clips.data`) **in plain text**, including passwords and API tokens. ClipMouse was built so secrets never hit the disk in the first place.
+The original pain: the old ClipMenu stored its clipboard history (`clips.data`) **in plain text**, including passwords and API tokens. ClipMouse was built so secrets never linger on disk: a detected secret is stored as a *temporary* clip — usable for a configurable window (1 hour by default), then auto-deleted from the menu and the database.
+
+### ClipMouse vs the field
+
+Every competitor covers exactly one category; ClipMouse is the only one covering all four — for free. All 20 apps surveyed:
+
+| App | Category | Clipboard history | Snippets | Keep-awake | Mouse remap | Secret protection | Local-only | Open source | Free |
+| --- | --- | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |
+| **ClipMouse** | all four | ✓ | ✓ | ✓ | ✓ | ✓ (automatic) | ✓ | ✓ | ✓ |
+| Paste | clipboard | ✓ | — | — | — | — | — (iCloud sync) | — | — (subscription) |
+| Maccy | clipboard | ✓ | — | — | — | ? | ✓ | ✓ | ✓ |
+| CopyClip 2 | clipboard | ✓ | — | — | — | ? | ✓ | — | — ($7.99) |
+| Flycut | clipboard | ✓ | — | — | — | ? | ✓ | ✓ | ✓ |
+| Copied | clipboard | ✓ | — | — | — | ? | — (iCloud) | — | — (abandoned) |
+| Unclutter | clipboard + files + notes | ✓ | — | — | — | ? | ✓ | — | — ($19.99) |
+| Pastebot 3 | clipboard | ✓ | — | — | — | ? | ✓ | — | — (subscription) |
+| Clipy | clipboard | ✓ | ✓ | — | — | ? | ✓ | ✓ | ✓ |
+| TextExpander | snippets | — | ✓ | — | — | — | — (vendor servers) | — | — (~$50/year) |
+| SnippetsLab | snippets | — | ✓ | — | — | ? | — (iCloud) | — | ✓ |
+| aText | snippets | — | ✓ | — | — | ? | — (online activation) | — | — (subscription/lifetime) |
+| Espanso | snippets | — | ✓ | — | — | ? | ✓ | ✓ | ✓ |
+| Amphetamine | keep-awake | — | — | ✓ | — | n/a | ✓ | — | ✓ |
+| KeepingYouAwake | keep-awake | — | — | ✓ | — | n/a | ✓ | ✓ | ✓ |
+| Caffeine | keep-awake | — | — | ? | — | n/a | ✓ | ~ (forks only) | ✓ |
+| Lungo | keep-awake | — | — | ✓ | — | n/a | ✓ | — | — (paid) |
+| Karabiner-Elements | mouse remapper | — | — | — | ✓ | n/a | ✓ | ✓ | ✓ |
+| SteerMouse | mouse remapper | — | — | — | ✓ | n/a | ✓ | — | — (paid upgrades) |
+| BetterMouse | mouse remapper | — | — | — | ✓ | n/a | ✓ | — | — ($7.99) |
+| LinearMouse | mouse remapper | — | — | — | ✓ | n/a | ✓ | ✓ | ✓ |
+
+`?` = undocumented; `~` = broken on current macOS. Caffeine hasn't worked reliably since ~2014, Copied was abandoned in ~2020 and Flycut had no release since December 2020.
 
 ## Features
 
 - **Clipboard history** — text, links, images, PDFs and files: up to 200 entries (configurable to 500). Duplicates collapse, storage is 30 days.
-- **Spotlight-style search** — a panel that filters by content and by source app: query “Telegram” finds everything you copied from Telegram. Right-click a clip to delete it or block the source app.
+- **Spotlight-style search** — a panel that filters by content and by source app: query “Telegram” finds everything you copied from Telegram. Right-click a clip to save it as a snippet, delete it or block the source app.
 - **Smart paste** — <kbd>⌥</kbd> pastes as plain text, <kbd>⌘</kbd> as a POSIX path. Synthetic-⌘V auto-paste is optional and off by default; it waits for the target app and for modifier keys to be released, and detects Secure Input.
 - **Snippets** — categories and CRUD management right in the menu. Placeholders `{date:HH:mm}`, `{clipboard}` and `{uuid}` expand on paste.
-- **Secret protection** — tokens (`sk-`, `ghp_`, PEM), card numbers and high-entropy strings are never saved; Bitwarden, Passwords and Terminal are blocked out of the box. Hold <kbd>⌥</kbd> to save anyway.
+- **Secret protection** — tokens (`sk-`, `ghp_`, PEM), card numbers and high-entropy strings are stored only as temporary clips: marked with a clock icon, usable for a configurable window (1 hour by default), then auto-deleted from menu and database. Bitwarden, Passwords and Terminal are blocked out of the box. Right-click any clip to keep it as a snippet.
 - **Keep-awake** — right-click the icon and your Mac stays up for an hour: timers from 5 minutes to indefinite, a battery threshold, remaining time glows in the orange rings. Scriptable via the `clipmouse://caffeine/activate?seconds=N` URL scheme.
 - **Middle button → right ⌘** — the middle mouse button becomes right Command, for voice input in Spokenly. CGEventTap with a stuck-key watchdog and a dictation suppression window; the mapping lives here, not in Karabiner.
 - **Native and light** — pure AppKit on Swift 6, zero third-party dependencies, SQLite in WAL mode, launch-at-login, self-signed so Accessibility permission survives rebuilds. Around 0% CPU when idle.
@@ -149,7 +179,7 @@ Right-click the ClipMouse icon: timers from 5 minutes to indefinite, a battery t
 Never. No network access at all — no telemetry, no analytics, no update checks.
 
 **Where is my clipboard history stored?**
-In a local SQLite database in `~/Library/Application Support`: file permissions 0600, directory 0700, excluded from backups. Secrets (tokens, PEM keys, card numbers, high-entropy strings) are not saved at all.
+In a local SQLite database in `~/Library/Application Support`: file permissions 0600, directory 0700, excluded from backups. Secrets (tokens, PEM keys, card numbers, high-entropy strings) are stored only as temporary clips and auto-deleted after a configurable window (1 hour by default).
 
 **Are there prebuilt downloads or Homebrew?**
 Not yet — build from source with `make install`. Downloads are planned once the repo is public.

@@ -3,13 +3,14 @@ import AppKit
 /// Контроллер панели поиска (§9 Фаза 3).
 /// Пустой запрос — вся история; непустой — фильтр localizedStandardRange
 /// по первым 4096 символам. Единственное окно на полный список.
-/// Правый клик по строке: Delete / Never save from "<App>".
+/// Правый клик по строке: Save as Snippet / Delete / Never save from "<App>".
 @MainActor
 public final class SearchController: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 
     private let store: ClipStore
     private let monitor: ClipboardMonitor
     private let prefs: Prefs
+    private let snippetsStore: SnippetStore
     private let panel = SearchPanel()
     private var searchField: NSSearchField!
     private var tableView: NSTableView!
@@ -21,10 +22,12 @@ public final class SearchController: NSObject, NSTableViewDataSource, NSTableVie
 
     public var isVisible: Bool { panel.isVisible }
 
-    public init(store: ClipStore, monitor: ClipboardMonitor, prefs: Prefs) {
+    public init(store: ClipStore, monitor: ClipboardMonitor, prefs: Prefs,
+                snippetsStore: SnippetStore) {
         self.store = store
         self.monitor = monitor
         self.prefs = prefs
+        self.snippetsStore = snippetsStore
         super.init()
         buildUI()
         clipsObserver = NotificationCenter.default.addObserver(
@@ -252,6 +255,7 @@ public final class SearchController: NSObject, NSTableViewDataSource, NSTableVie
 
     private func detailLine(_ clip: Clip) -> String {
         var parts = [clip.kind.rawValue]
+        if clip.expiresAt != nil { parts.append(String(localized: "temporary.label")) }
         if let source = clip.sourceBundle { parts.append(source) }
         let df = DateFormatter()
         df.dateStyle = .short
@@ -273,6 +277,13 @@ public final class SearchController: NSObject, NSTableViewDataSource, NSTableVie
         let clip = filtered[row]
 
         let menu = NSMenu()
+        if clip.text?.isEmpty == false {
+            let save = NSMenuItem(title: String(localized: "Save as Snippet…"),
+                                  action: #selector(saveAsSnippet(_:)), keyEquivalent: "")
+            save.target = self
+            save.representedObject = clip
+            menu.addItem(save)
+        }
 	        let del = NSMenuItem(title: String(localized: "Delete"), action: #selector(deleteClip(_:)), keyEquivalent: "")
         del.target = self
         del.tag = Int(clip.id)
@@ -289,6 +300,11 @@ public final class SearchController: NSObject, NSTableViewDataSource, NSTableVie
         // (двойной конверт уводил меню в низ экрана)
         menu.popUp(positioning: nil, at: point, in: tableView)
         return true
+    }
+
+    @objc private func saveAsSnippet(_ sender: NSMenuItem) {
+        guard let clip = sender.representedObject as? Clip else { return }
+        SnippetSaver.saveClipAsSnippet(clip, store: snippetsStore)
     }
 
     @objc private func deleteClip(_ sender: NSMenuItem) {

@@ -135,7 +135,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
                 self.snippets = snippets
 
-                let search = SearchController(store: store, monitor: monitor, prefs: Prefs())
+                let search = SearchController(store: store, monitor: monitor, prefs: Prefs(),
+                                              snippetsStore: snippets)
                 self.search = search
 
                 let awake = AwakeController(prefs: Prefs())

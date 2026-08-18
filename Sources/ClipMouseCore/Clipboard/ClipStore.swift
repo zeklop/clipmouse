@@ -127,6 +127,12 @@ public actor ClipStore {
             try healRichPreviews(db)
             try exec(db, "PRAGMA user_version=2;")
         }
+        if v < 3 {
+            // Временные клипы (секреты §12): NULL — обычный клип,
+            // дата — момент автоудаления
+            try exec(db, "ALTER TABLE clips ADD COLUMN expires_at REAL;")
+            try exec(db, "PRAGMA user_version=3;")
+        }
     }
 
     /// Ревизия 12: rtf/rtfd-клипы сохраняли в preview байтовый ярлык
@@ -228,11 +234,14 @@ public actor ClipStore {
     // MARK: - Операции
 
     /// Upsert (§4) + enforceRetention после каждой вставки.
+    /// Конфликт по hash обновляет и expires_at: повторное копирование
+    /// секрета продлевает TTL, обычный клип (NULL) не затрагивается.
     func upsert(_ clip: Clip, limit: Int, expireDays: Int) throws {
         let stmt = try prepare("""
-        INSERT INTO clips (hash,kind,preview,text,blob,source_bundle,created_at,last_used_at)
-        VALUES (?,?,?,?,?,?,?,?)
-        ON CONFLICT(hash) DO UPDATE SET last_used_at = excluded.last_used_at;
+        INSERT INTO clips (hash,kind,preview,text,blob,source_bundle,created_at,last_used_at,expires_at)
+        VALUES (?,?,?,?,?,?,?,?,?)
+        ON CONFLICT(hash) DO UPDATE SET last_used_at = excluded.last_used_at,
+                                        expires_at = excluded.expires_at;
         """)
         defer { sqlite3_finalize(stmt) }
         bind(stmt, 1, clip.hash)
@@ -243,31 +252,56 @@ public actor ClipStore {
         bind(stmt, 6, clip.sourceBundle)
         bindDate(stmt, 7, clip.createdAt)
         bindDate(stmt, 8, clip.lastUsedAt)
+        if let expiresAt = clip.expiresAt {
+            bindDate(stmt, 9, expiresAt)
+        } else {
+            sqlite3_bind_null(stmt, 9)
+        }
         guard sqlite3_step(stmt) == SQLITE_DONE else {
             throw StoreError.sql(String(cString: sqlite3_errmsg(db)))
         }
         try enforceRetention(limit: limit, expireDays: expireDays)
     }
 
-    /// Ретеншен по числу и по времени, что раньше (§8.3). pinned не трогает.
+    /// Ретеншен по числу и по времени, что раньше (§8.3). pinned не трогает;
+    /// исключение — истёкшие временные клипы (expires_at), они удаляются
+    /// безусловно: смысл секрета в гарантированном исчезновении.
     func enforceRetention(limit: Int, expireDays: Int) throws {
         let stmt = try prepare("""
-        DELETE FROM clips WHERE pinned = 0 AND (
-          id NOT IN (SELECT id FROM clips WHERE pinned = 0 ORDER BY last_used_at DESC LIMIT ?1)
-          OR last_used_at < ?2
-        );
+        DELETE FROM clips WHERE
+          (expires_at IS NOT NULL AND expires_at < ?3)
+          OR (pinned = 0 AND (
+            id NOT IN (SELECT id FROM clips WHERE pinned = 0 ORDER BY last_used_at DESC LIMIT ?1)
+            OR last_used_at < ?2
+          ));
         """)
         defer { sqlite3_finalize(stmt) }
         sqlite3_bind_int64(stmt, 1, Int64(max(limit, 1)))
         sqlite3_bind_double(stmt, 2, Date().addingTimeInterval(-Double(expireDays) * 86_400).timeIntervalSince1970)
+        sqlite3_bind_double(stmt, 3, Date().timeIntervalSince1970)
         guard sqlite3_step(stmt) == SQLITE_DONE else {
             throw StoreError.sql(String(cString: sqlite3_errmsg(db)))
         }
     }
 
+    /// Удаление истёкших временных клипов (TTL секретов). Возвращает
+    /// число удалённых строк; зовётся монитором периодически и на старте.
+    @discardableResult
+    func purgeExpired() throws -> Int {
+        let stmt = try prepare("""
+        DELETE FROM clips WHERE expires_at IS NOT NULL AND expires_at < ?1;
+        """)
+        defer { sqlite3_finalize(stmt) }
+        sqlite3_bind_double(stmt, 1, Date().timeIntervalSince1970)
+        guard sqlite3_step(stmt) == SQLITE_DONE else {
+            throw StoreError.sql(String(cString: sqlite3_errmsg(db)))
+        }
+        return Int(sqlite3_changes(db))
+    }
+
     func recent(limit: Int) throws -> [Clip] {
         let stmt = try prepare("""
-        SELECT id,kind,preview,text,blob,source_bundle,created_at,last_used_at,pinned
+        SELECT id,kind,preview,text,blob,source_bundle,created_at,last_used_at,pinned,expires_at
         FROM clips ORDER BY pinned DESC, last_used_at DESC LIMIT ?1;
         """)
         defer { sqlite3_finalize(stmt) }
@@ -331,10 +365,16 @@ public actor ClipStore {
             return Clip(kind: .string, hash: "", preview: "?", text: nil, blob: nil,
                         sourceBundle: nil, createdAt: .distantPast, lastUsedAt: .distantPast)
         }
+        // expires_at: SQLite отдаёт NULL как 0.0 — отличаем по типу колонки
+        var expiresAt: Date? = nil
+        if sqlite3_column_type(stmt, 9) == SQLITE_FLOAT {
+            expiresAt = Date(timeIntervalSince1970: sqlite3_column_double(stmt, 9))
+        }
         return Clip(id: sqlite3_column_int64(stmt, 0), kind: kind, hash: "", preview: preview,
                     text: text(3), blob: blob, sourceBundle: text(5),
                     createdAt: Date(timeIntervalSince1970: sqlite3_column_double(stmt, 6)),
                     lastUsedAt: Date(timeIntervalSince1970: sqlite3_column_double(stmt, 7)),
-                    pinned: sqlite3_column_int64(stmt, 8) != 0)
+                    pinned: sqlite3_column_int64(stmt, 8) != 0,
+                    expiresAt: expiresAt)
     }
 }

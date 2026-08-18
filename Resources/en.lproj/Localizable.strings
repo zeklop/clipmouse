@@ -10,8 +10,9 @@
 "ClipMouse failed to start" = "ClipMouse failed to start";
 
 /* Menu — History */
-"Not saved: looks like a secret (⌥ — save anyway)" = "Not saved: looks like a secret (⌥ — save anyway)";
 "History is empty" = "History is empty";
+"Right-click a clip to save it as a snippet" = "Right-click a clip to save it as a snippet";
+"Temporary — looks like a secret, will be deleted automatically" = "Temporary — looks like a secret, will be deleted automatically";
 
 /* Menu — Awake durations */
 "5 min" = "5 min";
@@ -70,6 +71,7 @@
 "No clips yet" = "No clips yet";
 "Nothing found" = "Nothing found";
 "never.save.from" = "Never save from \"%@\"";
+"temporary.label" = "temporary";
 
 /* Settings — sections */
 "General" = "General";
@@ -96,6 +98,7 @@
 /* Settings — Security */
 "+ Add running app…" = "+ Add running app…";
 "Remove from the list" = "Remove from the list";
+"Temporary secrets lifetime, minutes (5…1440)" = "Temporary secrets lifetime, minutes (5…1440)";
 
 /* Settings — Awake */
 "Icon toggle duration" = "Icon toggle duration";
@@ -126,3 +129,6 @@
 
 /* Window title */
 "ClipMouse" = "ClipMouse";
+
+/* Context menu: save the clip as a snippet */
+"Save as Snippet…" = "Save as Snippet…";

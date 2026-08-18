@@ -10,8 +10,9 @@
 "ClipMouse failed to start" = "Не удалось запустить ClipMouse";
 
 /* Меню — История */
-"Not saved: looks like a secret (⌥ — save anyway)" = "Не сохранено: похоже на секрет (⌥ — сохранить принудительно)";
 "History is empty" = "История пуста";
+"Right-click a clip to save it as a snippet" = "Правый клик по клипу — сохранить как сниппет";
+"Temporary — looks like a secret, will be deleted automatically" = "Временный: похоже на секрет, будет удалён автоматически";
 
 /* Меню — Длительности бодрствования */
 "5 min" = "5 мин";
@@ -70,6 +71,7 @@
 "No clips yet" = "Записей пока нет";
 "Nothing found" = "Ничего не найдено";
 "never.save.from" = "Никогда не сохранять из «%@»";
+"temporary.label" = "временный";
 
 /* Настройки — секции */
 "General" = "Основные";
@@ -96,6 +98,7 @@
 /* Настройки — Безопасность */
 "+ Add running app…" = "+ Добавить запущенное приложение…";
 "Remove from the list" = "Удалить из списка";
+"Temporary secrets lifetime, minutes (5…1440)" = "Срок жизни временных секретов, минут (5…1440)";
 
 /* Настройки — Бодрствование */
 "Icon toggle duration" = "Длительность тоггла иконки";
@@ -126,3 +129,6 @@
 
 /* Заголовок окна */
 "ClipMouse" = "ClipMouse";
+
+/* Контекстное меню: сохранить клип как сниппет */
+"Save as Snippet…" = "Сохранить как сниппет…";

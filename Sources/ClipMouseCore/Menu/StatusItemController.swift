@@ -51,11 +51,6 @@ public final class StatusItemController: NSObject {
             forName: .clipsDidChange, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.refreshCache() }
         })
-        observers.append(NotificationCenter.default.addObserver(
-            forName: .secretBlocked, object: nil, queue: .main) { [weak self] note in
-            guard let clip = note.object as? Clip else { return }
-            MainActor.assumeIsolated { self?.menuBuilder.secretNotice = (clip, Date()) }
-        })
 
         refreshCache()
     }

@@ -17,9 +17,10 @@ public actor ClipboardMonitor {
     /// frontmost в этот момент — целевое приложение, чёрный список не поможет.
     private var suppressUntil: Date?
 
-    /// Последний съеденный эвристикой секрет: меню покажет
-    /// «Not saved: looks like a secret (⌥ — save anyway)» на 120 с (§12).
-    private(set) var lastBlockedSecret: (clip: Clip, at: Date)?
+    /// Последняя чистка истёкших временных клипов (TTL секретов).
+    /// nil — ещё не было: первый tick чистит сразу (истёкшие за время,
+    /// пока приложение не работало, не должны показываться).
+    private var lastPurge: Date?
 
     public init(store: ClipStore, tracker: SourceTracker, prefs: Prefs) {
         self.store = store
@@ -60,6 +61,15 @@ public actor ClipboardMonitor {
     }
 
     private func tick() async {
+        // Периодическая чистка истёкших временных клипов (раз в 60 с)
+        if lastPurge.map({ Date().timeIntervalSince($0) >= 60 }) ?? true {
+            lastPurge = Date()
+            if let purged = try? await store.purgeExpired(), purged > 0 {
+                Log.monitor.info("удалено истёкших временных клипов: \(purged)")
+                NotificationCenter.default.post(name: .clipsDidChange, object: nil)
+            }
+        }
+
         let pb = NSPasteboard.general
         let cc = pb.changeCount
         guard cc != lastChangeCount else { return }
@@ -88,14 +98,15 @@ public actor ClipboardMonitor {
         }
         clip.sourceBundle = sources.first
 
-        // Эвристики секретов — только для текста (§12)
+        // Эвристики секретов — только для текста (§12): сохраняем сразу,
+        // но временным клипом с TTL из настроек; по истечении purge
+        // уберёт его из БД и меню.
         if clip.kind == .string, let text = clip.text,
            let verdict = SecretHeuristics.check(text) {
+            let ttl = TimeInterval(max(prefs.secretTTLMinutes, 1) * 60)
+            clip.expiresAt = Date().addingTimeInterval(ttl)
             Log.monitor.info(
-                "не сохранено: секрет (\(verdict.rule, privacy: .public), длина \(text.count), префикс \(String(text.prefix(4)), privacy: .private))")
-            lastBlockedSecret = (clip, Date())
-            NotificationCenter.default.post(name: .secretBlocked, object: clip)
-            return
+                "сохранено как временный секрет (\(verdict.rule, privacy: .public), длина \(text.count), TTL \(Int(ttl)) с)")
         }
 
         do {
@@ -105,22 +116,5 @@ public actor ClipboardMonitor {
         } catch {
             Log.store.error("upsert: \(error.localizedDescription, privacy: .public)")
         }
-    }
-
-    /// ⌥ при выборе строки-предупреждения: сохранить всё-таки (§12).
-    func saveBlockedSecret() async {
-        guard let (clip, _) = lastBlockedSecret else { return }
-        do {
-            try await store.upsert(clip, limit: prefs.historyLimit,
-                                   expireDays: prefs.historyExpireDays)
-            lastBlockedSecret = nil
-            NotificationCenter.default.post(name: .clipsDidChange, object: nil)
-        } catch {
-            Log.store.error("saveBlockedSecret: \(error.localizedDescription, privacy: .public)")
-        }
-    }
-
-    func clearBlockedSecretNotice() {
-        lastBlockedSecret = nil
     }
 }

@@ -17,6 +17,7 @@ enum DefaultsKey {
     static let hotkeySnippetsModifiers = "hotkey.snippets.modifiers"
     static let securityBlockedSources = "security.blockedSources"
     static let securityDictationSuppressSeconds = "security.dictationSuppressSeconds"
+    static let securitySecretTTLMinutes = "security.secretTTLMinutes"
     static let awakeBatteryThreshold = "awake.batteryThreshold"
     static let awakeDefaultDuration = "awake.defaultDuration"
     static let mouseEnabled = "mouse.enabled"
@@ -54,6 +55,7 @@ public struct Prefs {
                 "com.apple.Terminal",
             ],
             DefaultsKey.securityDictationSuppressSeconds: 5.0,
+            DefaultsKey.securitySecretTTLMinutes: 60,
             DefaultsKey.awakeBatteryThreshold: 20,
             DefaultsKey.awakeDefaultDuration: 3600,
             DefaultsKey.mouseEnabled: true,
@@ -77,6 +79,7 @@ public struct Prefs {
     var hotkeySnippetsModifiers: Int { d.integer(forKey: DefaultsKey.hotkeySnippetsModifiers) }
     var blockedSources: [String] { d.stringArray(forKey: DefaultsKey.securityBlockedSources) ?? [] }
     var dictationSuppressSeconds: Double { d.double(forKey: DefaultsKey.securityDictationSuppressSeconds) }
+    var secretTTLMinutes: Int { d.integer(forKey: DefaultsKey.securitySecretTTLMinutes) }
     var awakeBatteryThreshold: Int { d.integer(forKey: DefaultsKey.awakeBatteryThreshold) }
     public var awakeDefaultDuration: Int { d.integer(forKey: DefaultsKey.awakeDefaultDuration) }
     public var mouseEnabled: Bool { d.bool(forKey: DefaultsKey.mouseEnabled) }
@@ -122,5 +125,9 @@ public struct Prefs {
 
     public func setBlockedSources(_ list: [String]) {
         d.set(list, forKey: DefaultsKey.securityBlockedSources)
+    }
+
+    public func setSecretTTLMinutes(_ v: Int) {
+        d.set(min(max(v, 5), 1440), forKey: DefaultsKey.securitySecretTTLMinutes)
     }
 }

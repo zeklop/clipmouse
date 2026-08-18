@@ -17,11 +17,13 @@ public struct Clip: Identifiable, Sendable, Equatable, Codable {
     public let createdAt: Date
     public var lastUsedAt: Date
     public var pinned: Bool = false
+    /// Временные клипы (секреты §12): момент автоудаления из БД и меню.
+    /// nil — обычный клип, живёт по общему ретеншену.
+    public var expiresAt: Date? = nil
 }
 
 extension Notification.Name {
     static let clipsDidChange = Notification.Name("dev.clipmouse.clipsDidChange")
-    static let secretBlocked = Notification.Name("dev.clipmouse.secretBlocked")
 }
 
 /// Чтение буфера -> Clip и Clip -> буфер.

@@ -117,6 +117,24 @@ public enum SelfTest {
             let afterPinned = try await store.recent(limit: 10)
             expect("ретеншен: pinned не трогается", afterPinned.contains { $0.text == "важный" })
 
+            // Временные клипы (TTL секретов): round-trip expires_at, purgeExpired
+            expect("expires_at: у обычного клипа nil",
+                   afterPinned.allSatisfy { $0.expiresAt == nil })
+            var secret = makeClip("временный секрет")
+            secret.expiresAt = Date().addingTimeInterval(3600)
+            try await store.upsert(secret, limit: 200, expireDays: 30)
+            let storedSecret = (try await store.recent(limit: 20))
+                .first { $0.text == "временный секрет" }
+            expect("expires_at: round-trip через recent",
+                   storedSecret.map { abs(($0.expiresAt?.timeIntervalSinceNow ?? 0) - 3600) < 5 } == true)
+            // истёкший TTL: повторный upsert с прошедшим сроком убирает клип
+            // (enforceRetention), purgeExpired добивает остатки
+            secret.expiresAt = Date().addingTimeInterval(-60)
+            try await store.upsert(secret, limit: 200, expireDays: 30)
+            _ = try await store.purgeExpired()
+            expect("purgeExpired: истёкший временный клип удалён",
+                   !(try await store.recent(limit: 20)).contains { $0.text == "временный секрет" })
+
             expect("clearAll: возвращает число удалённых", (try await store.clearAll()) >= 3)
 
             // MARK: миграция v2 (ревизия 12): лечение превью rtf

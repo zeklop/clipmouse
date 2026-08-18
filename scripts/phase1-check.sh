@@ -1,6 +1,6 @@
 #!/bin/bash
 # Проверка Фазы 1 (§9): захват 120 строк с паузой 0.7 с, дедупликация,
-# эвристика секретов, чёрный список источников.
+# эвристика секретов (временные клипы с TTL, ревизия 14), чёрный список источников.
 # Запускать при работающем ClipMouse. Буфер обмена после прогона затирается.
 set -euo pipefail
 
@@ -33,11 +33,13 @@ printf "тестовая строка номер 001" | pbcopy; sleep 1.5
 c2=$(count)
 [ "$c1" -eq "$c2" ] && ok "счётчик не изменился ($c1)" || fail "счётчик вырос: $c1 → $c2"
 
-echo "== 3. эвристика секретов =="
+echo "== 3. эвристика секретов: временный клип с expires_at =="
 printf 'ghp_phase1selftest16C7e42F291cZv5' | pbcopy; sleep 1.5
 c3=$(count)
-if has_preview "ghp_"; then fail "секрет с ghp_ попал в историю"; else ok "секрет с ghp_ не сохранён"; fi
-[ "$c3" -eq "$c2" ] && ok "счётчик не изменился ($c3)" || fail "счётчик изменился: $c2 → $c3"
+if has_preview "ghp_"; then ok "секрет с ghp_ сохранён как временный клип"; else fail "секрет с ghp_ не попал в историю"; fi
+ttl=$(sqlite3 "$DB" "select count(*) from clips where preview like 'ghp_%' and expires_at is not null;")
+[ "$ttl" -gt 0 ] && ok "у секрета выставлен expires_at" || fail "expires_at не выставлен — клип не временный"
+[ "$c3" -eq $((c2 + 1)) ] && ok "счётчик вырос ровно на 1 ($c2 → $c3)" || fail "счётчик изменился неожиданно: $c2 → $c3"
 
 echo "== 4. чёрный список источников =="
 defaults write "$DOMAIN" security.blockedSources -array "dev.zcode.app"

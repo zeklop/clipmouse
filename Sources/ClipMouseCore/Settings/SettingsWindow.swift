@@ -22,6 +22,7 @@ public final class SettingsWindowController: NSObject {
     private var batteryField: NSTextField!
     private var blockedTable: NSTableView!
     private var blockedData: [(bundle: String, name: String, icon: NSImage?)] = []
+    private var secretTTLField: NSTextField!
     /// Числовое поле → сеттер значения (controlTextDidEndEditing)
     private var fieldSetters: [ObjectIdentifier: (String) -> Void] = [:]
     private var addButton: NSButton!
@@ -148,6 +149,10 @@ public final class SettingsWindowController: NSObject {
         addButton.bezelStyle = .rounded
         addButton.translatesAutoresizingMaskIntoConstraints = false
         stack.addArrangedSubview(addButton)
+        secretTTLField = numberField(value: prefs.secretTTLMinutes,
+                                     action: #selector(secretTTLChanged)) { self.prefs.setSecretTTLMinutes($0) }
+        row(caption: String(localized: "Temporary secrets lifetime, minutes (5…1440)"),
+            view: secretTTLField)
         gap()
 
         // Awake
@@ -247,6 +252,7 @@ public final class SettingsWindowController: NSObject {
         inlineCountField.stringValue = String(prefs.menuInlineCount)
         autoPasteCheckbox.state = prefs.pasteAutoAfterSelect ? .on : .off
         batteryField.stringValue = String(prefs.awakeBatteryThreshold)
+        secretTTLField.stringValue = String(prefs.secretTTLMinutes)
         if let idx = Self.durations.firstIndex(where: { $0.1 == prefs.awakeDefaultDuration }) {
             durationPopup.selectItem(at: idx)
         }
@@ -323,6 +329,10 @@ public final class SettingsWindowController: NSObject {
 
     @objc private func batteryChanged() {
         prefs.setAwakeBatteryThreshold(Int(batteryField.stringValue) ?? prefs.awakeBatteryThreshold)
+    }
+
+    @objc private func secretTTLChanged() {
+        prefs.setSecretTTLMinutes(Int(secretTTLField.stringValue) ?? prefs.secretTTLMinutes)
     }
 
     @objc private func durationChanged() {
