@@ -109,7 +109,7 @@ Measured on a live process, not promised on someone's word.
 
 ## Install
 
-Prebuilt DMG from [GitHub Releases](https://github.com/zeklop/clipmouse/releases), or build from source — one command from the repository.
+Prebuilt DMG from [GitHub Releases](https://github.com/zeklop/clipmouse/releases) or via Homebrew (`brew tap zeklop/tap`) — or build from source with one command.
 
 ```sh
 git clone https://github.com/zeklop/clipmouse.git
@@ -187,7 +187,15 @@ Never. No network access at all — no telemetry, no analytics, no update checks
 In a local SQLite database in `~/Library/Application Support`: file permissions 0600, directory 0700, excluded from backups. Secrets (tokens, PEM keys, card numbers, high-entropy strings) are stored only as temporary clips and auto-deleted after a configurable window (1 hour by default).
 
 **Are there prebuilt downloads or Homebrew?**
-Yes — a DMG is attached to each [GitHub Release](https://github.com/zeklop/clipmouse/releases). A Homebrew cask formula ships in the repo (`packaging/Casks/clipmouse.rb`); the tap is on its way. Building from source with `make install` always works too.
+Yes — a DMG is attached to each [GitHub Release](https://github.com/zeklop/clipmouse/releases), and Homebrew works via a tap:
+
+```sh
+brew tap zeklop/tap
+brew trust zeklop/tap          # newer Homebrew asks for explicit trust
+brew install --cask clipmouse
+```
+
+Building from source with `make install` always works too.
 
 **Which languages does the UI support?**
 English and Russian — the UI follows your system language (System Settings → General → Language & Region).

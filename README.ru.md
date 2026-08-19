@@ -109,7 +109,7 @@ ClipMouse не ходит в сеть — **вообще**. Ни телемет�
 
 ## Установка
 
-Готовый DMG — в [GitHub Releases](https://github.com/zeklop/clipmouse/releases), либо сборка из исходников одной командой.
+Готовый DMG — в [GitHub Releases](https://github.com/zeklop/clipmouse/releases) или через Homebrew (`brew tap zeklop/tap`), либо сборка из исходников одной командой.
 
 ```sh
 git clone https://github.com/zeklop/clipmouse.git
@@ -187,7 +187,15 @@ design/icons/   концепт иконки (SVG — источник истин
 В локальной SQLite-базе в `~/Library/Application Support`: файл 0600, каталог 0700, исключён из бэкапов. Секреты (токены, PEM-ключи, номера карт, высокоэнтропийные строки) хранятся только как временные клипы и автоматически удаляются после настраиваемого срока (по умолчанию час).
 
 **Есть готовые сборки или Homebrew?**
-Да — DMG приложен к каждому [GitHub Release](https://github.com/zeklop/clipmouse/releases). Формула Homebrew-каски лежит в репозитории (`packaging/Casks/clipmouse.rb`), tap в пути. Сборка из исходников через `make install` работает всегда.
+Да — DMG приложен к каждому [GitHub Release](https://github.com/zeklop/clipmouse/releases), а Homebrew ставит через tap:
+
+```sh
+brew tap zeklop/tap
+brew trust zeklop/tap          # свежий Homebrew требует явного доверия тапу
+brew install --cask clipmouse
+```
+
+Сборка из исходников через `make install` работает всегда.
 
 **Какие языки интерфейса?**
 Английский и русский — интерфейс следует языку системы (Системные настройки → Основные → Язык и регион).

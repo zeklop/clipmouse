@@ -1,5 +1,11 @@
 # Homebrew Tap: ClipMouse
 
+> **Статус (19.08.2026):** tap создан — `zeklop/homebrew-tap`, секция
+> «Создание tap-репозитория» выполнена. Замерено: свежий Homebrew требует
+> явного доверия сторонним тапам — пользователю после `brew tap zeklop/tap`
+> нужен ещё `brew trust zeklop/tap` (или `brew trust --cask zeklop/tap/clipmouse`),
+> иначе «Refusing to load cask from untrusted tap».
+
 ## Создание tap-репозитория (один раз)
 
 ```bash
