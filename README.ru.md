@@ -17,7 +17,7 @@
   <img src="https://img.shields.io/badge/Swift-6-F05138" alt="Swift 6">
   <img src="https://img.shields.io/badge/AppKit-%D1%87%D0%B8%D1%81%D1%82%D1%8B%D0%B9-success" alt="Чистый AppKit">
   <img src="https://img.shields.io/badge/%D0%B7%D0%B0%D0%B2%D0%B8%D1%81%D0%B8%D0%BC%D0%BE%D1%81%D1%82%D0%B8-0-success" alt="Ноль сторонних зависимостей">
-  <img src="https://img.shields.io/badge/selftest-32%2F32-brightgreen" alt="Selftest 32/32">
+  <img src="https://img.shields.io/badge/selftest-39%2F39-brightgreen" alt="Selftest 39/39">
   <img src="https://img.shields.io/badge/%D0%BB%D0%B8%D1%86%D0%B5%D0%BD%D0%B7%D0%B8%D1%8F-MIT-green" alt="Лицензия MIT">
 </p>
 
@@ -70,7 +70,7 @@ ClipMouse — нативный агент для macOS 26 в меню-баре. 
 - **История буфера** — текст, ссылки, картинки, PDF и файлы: до 200 записей (настраивается до 500). Повторы схлопываются, хранение — 30 дней.
 - **Поиск как в Spotlight** — панель с фильтром по содержимому и по приложению-источнику: запрос «Telegram» покажет всё, что вы копировали из Telegram. Правый клик по клипу — сохранить как сниппет, удалить или заблокировать приложение-источник.
 - **Умная вставка** — <kbd>⌥</kbd> вставляет чистым текстом, <kbd>⌘</kbd> — POSIX-путём. Автовставка через синтетический ⌘V опциональна и по умолчанию выключена: она ждёт активации цели и отпускания модификаторов, Secure Input детектится.
-- **Сниппеты** — категории и управление прямо в меню. Плейсхолдеры `{date:HH:mm}`, `{clipboard}` и `{uuid}` разворачиваются при вставке.
+- **Сниппеты** — категории и сниппеты управляются в настройках (отдельная вкладка Snippets с инлайн-редактированием); меню бара остаётся только для вставки. Плейсхолдеры `{date:HH:mm}`, `{clipboard}` и `{uuid}` разворачиваются при вставке.
 - **Защита секретов** — токены (`sk-`, `ghp_`, PEM), номера карт и высокоэнтропийные строки хранятся только как временные клипы: помечены иконкой часов, доступны настраиваемое время (по умолчанию час), затем автоматически удаляются из меню и базы. Bitwarden, Passwords и Terminal — в чёрном списке из коробки. Правый клик по клипу сохраняет его как сниппет.
 - **Режим «не засыпать»** — правый клик по иконке, и Mac бодр час: таймеры от 5 минут до бесконечности, порог батареи, остаток виден в оранжевых кольцах. Скрипты — через URL-схему `clipmouse://caffeine/activate?seconds=N`.
 - **Средняя кнопка → правый ⌘** — средняя кнопка мыши становится правой Command для голосового ввода в Spokenly. CGEventTap c watchdog'ом залипания и окном подавления диктовок; карта живёт здесь, а не в Karabiner.
@@ -84,9 +84,10 @@ ClipMouse — нативный агент для macOS 26 в меню-баре. 
 | Меню сниппетов | <kbd>⌘⇧B</kbd> |
 | «Не засыпать» (кофеин) | правый клик по иконке |
 | Вставка из поиска | <kbd>Return</kbd> · чистый текст <kbd>⌥</kbd> · POSIX-путь <kbd>⌘</kbd> · закрыть <kbd>Esc</kbd> |
-| Правка сниппета | <kbd>⌥</kbd> · Удаление сниппета <kbd>⌥⇧</kbd> |
+| Сохранить клип как сниппет | правый клик по клипу (в меню или в поиске) |
+| Настройки | <kbd>⌘,</kbd> |
 
-Меню: история → Awake ▸ → Snippets ▸ → Search… → Settings → Quit.
+Меню: история → Awake ▸ → Snippets (вставка + «Manage Snippets…») → Search… → Settings → Quit.
 
 ## Приватность — история не покидает ваш Mac
 
@@ -106,9 +107,9 @@ ClipMouse не ходит в сеть — **вообще**. Ни телемет�
 - **Чёрный список** — Bitwarden, Passwords и Terminal заблокированы по умолчанию, управление — из UI: правый клик по клипу → Never save from этого приложения.
 - **Дамп перед очисткой** — Clear History сначала пишет резервный дамп: случайная очистка ничего не теряет.
 
-## Установка — сборка из исходников
+## Установка
 
-Готовых сборок пока нет: ClipMouse собирается одной командой из репозитория.
+Готовый DMG — в [GitHub Releases](https://github.com/zeklop/clipmouse/releases), либо сборка из исходников одной командой.
 
 ```sh
 git clone https://github.com/zeklop/clipmouse.git
@@ -122,7 +123,7 @@ make check     # debug + release + selftest; ворнинги валят сбо�
 3. **Разрешения при первом запуске** — два тумблера один раз: [разрешения при первом запуске](docs/permissions.ru.md).
 4. **Опционально: AX переживает пересборки.** С подписью adhoc каждая пересборка сбрасывает право Accessibility. Один раз создайте личный сертификат: `bash scripts/make-cert.sh` и следуйте [docs/codesign-and-tcc.md](docs/codesign-and-tcc.md) — пересборки перестанут сбрасывать права.
 
-Диагностические флаги бинарника: `--selftest`, `--paste-test` (постит синтетический ⌘V в активное приложение), `--spike-right-cmd`.
+Диагностические флаги бинарника: `--selftest`, `--paste-test` (постит синтетический ⌘V в активное приложение), `--spike-right-cmd`. Диплинки: `clipmouse://caffeine/activate?seconds=N` и `clipmouse://settings/<tab>`.
 
 ## Экраны
 
@@ -132,9 +133,13 @@ make check     # debug + release + selftest; ворнинги валят сбо�
 | --- | --- |
 | <img src="docs/assets/search.png" alt="ClipMouse — панель поиска по истории с фильтром по приложению-источнику"> | <img src="docs/assets/menu.png" alt="ClipMouse — меню истории с последними клипами и сниппетами"> |
 
-| Настройки |
-| --- |
-| <img src="docs/assets/settings.png" alt="ClipMouse — окно настроек: секции General, History, Paste, Security, Awake"> |
+Настройки — одно окно, четыре вкладки:
+
+| **General** — автозапуск, лимиты истории, Awake | **Snippets** — категории и таблица сниппетов |
+| --- | --- |
+| <img src="docs/assets/settings-general.png" alt="ClipMouse — настройки, вкладка General: автозапуск, лимиты истории, таймеры Awake"> | <img src="docs/assets/settings-snippets.png" alt="ClipMouse — настройки, вкладка Snippets: категории слева, таблица сниппетов справа"> |
+| **Security** — чёрный список и временные секреты | **About** — версия и хоткеи |
+| <img src="docs/assets/settings-security.png" alt="ClipMouse — настройки, вкладка Security: чёрный список приложений и срок жизни временных секретов"> | <img src="docs/assets/settings-about.png" alt="ClipMouse — настройки, вкладка About: версия, ссылка на GitHub и шпаргалка по хоткеям"> |
 
 ## Структура проекта
 
@@ -148,8 +153,8 @@ Sources/ClipMouseCore/     вся логика (библиотека — дос�
   Hotkeys/     HotKeyCenter (Carbon, режимы ⌃⌥ ↔ ⌘⇧)
   Mouse/       MouseRemapper (тап, watchdog, подавление диктовок)
   Awake/       AwakeController, PowerSource
-  Settings/    SettingsWindow
-  Snippets/    SnippetStore, Placeholders
+  Settings/    SettingsWindow (с табами), SnippetsTab
+  Snippets/    SnippetStore, SnippetSaver, Placeholders
 Sources/ClipMouse/main.swift   guard, AppDelegate, диагностика
 scripts/        make-cert.sh, make-icon.swift, phase1-check.sh, spike-right-cmd.swift
 docs/           лендинг (GitHub Pages)
@@ -182,13 +187,13 @@ design/icons/   концепт иконки (SVG — источник истин
 В локальной SQLite-базе в `~/Library/Application Support`: файл 0600, каталог 0700, исключён из бэкапов. Секреты (токены, PEM-ключи, номера карт, высокоэнтропийные строки) хранятся только как временные клипы и автоматически удаляются после настраиваемого срока (по умолчанию час).
 
 **Есть готовые сборки или Homebrew?**
-Пока нет — собирайте из исходников через `make install`. Скачивания появятся, когда репозиторий станет публичным.
+Да — DMG приложен к каждому [GitHub Release](https://github.com/zeklop/clipmouse/releases). Формула Homebrew-каски лежит в репозитории (`packaging/Casks/clipmouse.rb`), tap в пути. Сборка из исходников через `make install` работает всегда.
 
 **Какие языки интерфейса?**
 Английский и русский — интерфейс следует языку системы (Системные настройки → Основные → Язык и регион).
 
 ## Статус
 
-Фазы 0–6 реализованы (2026-08-16), идёт наблюдательная неделя.
+Фазы 0–6 реализованы; версия 0.2.0 принесла окно настроек с табами, инлайн-редактирование сниппетов и защиту временных секретов.
 
 ClipMouse 0.2.0 — преемник ClipMenu 0.4.3 · Swift 6 · AppKit · 2026

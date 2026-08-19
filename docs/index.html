@@ -113,7 +113,7 @@
           <div class="feature">
             <div class="feature-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.2 10.2V5.4a1.2 1.2 0 0 1 1.2-1.2H10l9.4 9.4-6 6L4.2 12.6z"/><circle cx="8.2" cy="8.2" r="1.15"/></svg></div>
             <h3 data-i18n="f4t">Сниппеты</h3>
-            <p><span data-i18n="f4d">Категории и управление прямо в меню. Плейсхолдеры</span> <code>{date:HH:mm}</code>, <code>{clipboard}</code> <span data-i18n="f4d2">и</span> <code>{uuid}</code> <span data-i18n="f4d3">разворачиваются при вставке.</span></p>
+            <p><span data-i18n="f4d">Категории и сниппеты — во вкладке настроек, меню бара только для вставки. Плейсхолдеры</span> <code>{date:HH:mm}</code>, <code>{clipboard}</code> <span data-i18n="f4d2">и</span> <code>{uuid}</code> <span data-i18n="f4d3">разворачиваются при вставке.</span></p>
           </div>
           <div class="feature">
             <div class="feature-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2l7 2.9v5.2c0 4.4-2.9 7.9-7 9.7-4.1-1.8-7-5.3-7-9.7V6.1z"/><path d="M9.1 11.6l2.2 2.2 3.9-4.2"/></svg></div>
@@ -161,14 +161,20 @@
 
         <div class="screen-row flip">
           <div class="mock-col">
+            <div class="settings-tabs" role="tablist" aria-label="ClipMouse Settings tabs">
+              <button type="button" class="settings-tab" role="tab" aria-selected="true" data-settings-tab="assets/settings-general.png">General</button>
+              <button type="button" class="settings-tab" role="tab" aria-selected="false" data-settings-tab="assets/settings-snippets.png">Snippets</button>
+              <button type="button" class="settings-tab" role="tab" aria-selected="false" data-settings-tab="assets/settings-security.png">Security</button>
+              <button type="button" class="settings-tab" role="tab" aria-selected="false" data-settings-tab="assets/settings-about.png">About</button>
+            </div>
             <div class="shot">
-              <img src="assets/settings.png" alt="ClipMouse — settings window" loading="lazy" onerror="this.parentElement.classList.add('no-shot')">
+              <img data-settings-img src="assets/settings-general.png" alt="ClipMouse — settings window, General tab" loading="lazy" onerror="this.parentElement.classList.add('no-shot')">
               <div class="shot-placeholder"><svg width="22" height="22" viewBox="0 0 18 18" aria-hidden="true"><use href="#scissors"/></svg><span data-i18n="ph_shot">Скриншот появится здесь</span></div>
             </div>
           </div>
           <div class="screen-text">
             <h3 data-i18n="s2t">Настройки</h3>
-            <p data-i18n="s2d">Одно окно без вкладок: автозапуск, лимиты и срок истории, автовставка, чёрный список приложений и таймеры Awake. В футере — версия и автор.</p>
+            <p data-i18n="s2d">Одно окно, четыре вкладки: General — автозапуск, лимиты истории и таймеры Awake; Snippets — категории и сниппеты; Security — чёрный список приложений и временные секреты; About — версия и шпаргалка по хоткеям. Вкладки над скриншотом переключаются.</p>
           </div>
         </div>
       </div>
@@ -215,8 +221,8 @@
     <section class="section" id="install">
       <div class="container">
         <div class="section-head">
-          <h2 data-i18n="inst_title">Установка из исходников</h2>
-          <p class="section-sub" data-i18n="inst_sub">Готовых сборок пока нет — ClipMouse собирается одной командой из репозитория. Фазы 0–6 реализованы, идёт наблюдательная неделя.</p>
+          <h2 data-i18n="inst_title">Установка</h2>
+          <p class="section-sub" data-i18n="inst_sub">Готовый DMG — в GitHub Releases; либо соберите одной командой из репозитория. Фазы 0–6 реализованы, версия 0.2.0.</p>
         </div>
         <div class="install-grid">
           <div>
@@ -253,7 +259,7 @@
               <div class="term-line"><span class="term-prompt">$</span> make install</div>
               <div class="term-line term-comment"># build → bundle → sign → /Applications</div>
               <div class="term-line"><span class="term-prompt">$</span> make check</div>
-              <div class="term-line"><span class="term-ok">✓ selftest: 32/32</span></div>
+              <div class="term-line"><span class="term-ok">✓ selftest: 39/39</span></div>
             </div>
           </div>
         </div>

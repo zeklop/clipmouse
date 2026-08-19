@@ -17,7 +17,7 @@
   <img src="https://img.shields.io/badge/Swift-6-F05138" alt="Swift 6">
   <img src="https://img.shields.io/badge/AppKit-pure%20native-success" alt="Pure AppKit">
   <img src="https://img.shields.io/badge/dependencies-0-success" alt="Zero third-party dependencies">
-  <img src="https://img.shields.io/badge/selftest-32%2F32-brightgreen" alt="Selftest 32/32">
+  <img src="https://img.shields.io/badge/selftest-39%2F39-brightgreen" alt="Selftest 39/39">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license">
 </p>
 
@@ -70,7 +70,7 @@ Every competitor covers exactly one category; ClipMouse is the only one covering
 - **Clipboard history** — text, links, images, PDFs and files: up to 200 entries (configurable to 500). Duplicates collapse, storage is 30 days.
 - **Spotlight-style search** — a panel that filters by content and by source app: query “Telegram” finds everything you copied from Telegram. Right-click a clip to save it as a snippet, delete it or block the source app.
 - **Smart paste** — <kbd>⌥</kbd> pastes as plain text, <kbd>⌘</kbd> as a POSIX path. Synthetic-⌘V auto-paste is optional and off by default; it waits for the target app and for modifier keys to be released, and detects Secure Input.
-- **Snippets** — categories and CRUD management right in the menu. Placeholders `{date:HH:mm}`, `{clipboard}` and `{uuid}` expand on paste.
+- **Snippets** — categories and snippets are managed in Settings (a dedicated Snippets tab with inline editing); the bar menu stays insertion-only. Placeholders `{date:HH:mm}`, `{clipboard}` and `{uuid}` expand on paste.
 - **Secret protection** — tokens (`sk-`, `ghp_`, PEM), card numbers and high-entropy strings are stored only as temporary clips: marked with a clock icon, usable for a configurable window (1 hour by default), then auto-deleted from menu and database. Bitwarden, Passwords and Terminal are blocked out of the box. Right-click any clip to keep it as a snippet.
 - **Keep-awake** — right-click the icon and your Mac stays up for an hour: timers from 5 minutes to indefinite, a battery threshold, remaining time glows in the orange rings. Scriptable via the `clipmouse://caffeine/activate?seconds=N` URL scheme.
 - **Middle button → right ⌘** — the middle mouse button becomes right Command, for voice input in Spokenly. CGEventTap with a stuck-key watchdog and a dictation suppression window; the mapping lives here, not in Karabiner.
@@ -84,9 +84,10 @@ Every competitor covers exactly one category; ClipMouse is the only one covering
 | Snippets menu | <kbd>⌘⇧B</kbd> |
 | Keep-awake (caffeine) | right-click the menu bar icon |
 | Paste from search panel | <kbd>Return</kbd> · plain text <kbd>⌥</kbd> · POSIX path <kbd>⌘</kbd> · close <kbd>Esc</kbd> |
-| Edit a snippet | <kbd>⌥</kbd> · Delete a snippet <kbd>⌥⇧</kbd> |
+| Save a clip as snippet | right-click the clip (menu or search) |
+| Settings | <kbd>⌘,</kbd> |
 
-The menu: history → Awake ▸ → Snippets ▸ → Search… → Settings → Quit.
+The menu: history → Awake ▸ → Snippets (insertion + "Manage Snippets…") → Search… → Settings → Quit.
 
 ## Privacy — your history never leaves your Mac
 
@@ -106,9 +107,9 @@ Measured on a live process, not promised on someone's word.
 - **App blocklist** — Bitwarden, Passwords and Terminal are blocked by default; manageable from the UI, per clip: “Never save from” that app.
 - **Backup before purge** — Clear History writes a backup dump first; an accidental purge loses nothing.
 
-## Install — build from source
+## Install
 
-There are no prebuilt binaries yet: ClipMouse builds with one command from the repository.
+Prebuilt DMG from [GitHub Releases](https://github.com/zeklop/clipmouse/releases), or build from source — one command from the repository.
 
 ```sh
 git clone https://github.com/zeklop/clipmouse.git
@@ -122,7 +123,7 @@ make check     # debug + release + selftest; warnings fail the build
 3. **Permissions on first launch** — a one-time setup of two toggles: [First-launch permissions](docs/permissions.md).
 4. **Optional: keep Accessibility across rebuilds.** With the default adhoc signature every rebuild resets the Accessibility permission. Create a personal certificate once: `bash scripts/make-cert.sh`, then follow [docs/codesign-and-tcc.md](docs/codesign-and-tcc.md) — rebuilds stop resetting permissions.
 
-Diagnostic flags of the binary: `--selftest`, `--paste-test` (posts a synthetic ⌘V to the frontmost app), `--spike-right-cmd`.
+Diagnostic flags of the binary: `--selftest`, `--paste-test` (posts a synthetic ⌘V to the frontmost app), `--spike-right-cmd`. Deep links: `clipmouse://caffeine/activate?seconds=N` and `clipmouse://settings/<tab>`.
 
 ## Screenshots
 
@@ -132,9 +133,13 @@ The real interface of the app — no design fiction.
 | --- | --- |
 | <img src="docs/assets/search.png" alt="ClipMouse — Spotlight-style clipboard search panel with source-app filter"> | <img src="docs/assets/menu.png" alt="ClipMouse — clipboard history menu with recent clips and snippets"> |
 
-| Settings |
-| --- |
-| <img src="docs/assets/settings.png" alt="ClipMouse — settings window: General, History, Paste, Security, Awake sections"> |
+Settings — one window, four tabs:
+
+| **General** — launch, history limits, Awake | **Snippets** — categories and snippet table |
+| --- | --- |
+| <img src="docs/assets/settings-general.png" alt="ClipMouse Settings — General tab: launch at login, history limits, Awake timers"> | <img src="docs/assets/settings-snippets.png" alt="ClipMouse Settings — Snippets tab: categories on the left, snippet table on the right"> |
+| **Security** — blocklist and temporary secrets | **About** — version and shortcuts |
+| <img src="docs/assets/settings-security.png" alt="ClipMouse Settings — Security tab: blocked apps and temporary-secret lifetime"> | <img src="docs/assets/settings-about.png" alt="ClipMouse Settings — About tab: version, GitHub link and shortcuts reference"> |
 
 ## Project layout
 
@@ -148,8 +153,8 @@ Sources/ClipMouseCore/     all logic (a library — also used by --selftest)
   Hotkeys/     HotKeyCenter (Carbon, ⌃⌥ ↔ ⌘⇧ modes)
   Mouse/       MouseRemapper (tap, watchdog, dictation suppression)
   Awake/       AwakeController, PowerSource
-  Settings/    SettingsWindow
-  Snippets/    SnippetStore, Placeholders
+  Settings/    SettingsWindow (tabbed), SnippetsTab
+  Snippets/    SnippetStore, SnippetSaver, Placeholders
 Sources/ClipMouse/main.swift   guard, AppDelegate, diagnostics
 scripts/        make-cert.sh, make-icon.swift, phase1-check.sh, spike-right-cmd.swift
 docs/           landing page (GitHub Pages)
@@ -182,13 +187,13 @@ Never. No network access at all — no telemetry, no analytics, no update checks
 In a local SQLite database in `~/Library/Application Support`: file permissions 0600, directory 0700, excluded from backups. Secrets (tokens, PEM keys, card numbers, high-entropy strings) are stored only as temporary clips and auto-deleted after a configurable window (1 hour by default).
 
 **Are there prebuilt downloads or Homebrew?**
-Not yet — build from source with `make install`. Downloads are planned once the repo is public.
+Yes — a DMG is attached to each [GitHub Release](https://github.com/zeklop/clipmouse/releases). A Homebrew cask formula ships in the repo (`packaging/Casks/clipmouse.rb`); the tap is on its way. Building from source with `make install` always works too.
 
 **Which languages does the UI support?**
 English and Russian — the UI follows your system language (System Settings → General → Language & Region).
 
 ## Status
 
-Phases 0–6 implemented (2026-08-16); observation week in progress.
+Phases 0–6 implemented; version 0.2.0 shipped tabbed settings, inline snippet editing and temporary-secret protection.
 
 ClipMouse 0.2.0 — successor to ClipMenu 0.4.3 · Swift 6 · AppKit · 2026
