@@ -547,19 +547,20 @@ kbd {
 
 .install-cards {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
   align-items: stretch;
 }
 
 .install-card {
   display: flex;
   flex-direction: column;
-  padding: 28px 24px;
+  padding: 26px 22px;
   border-radius: 20px;
   border: 1px solid var(--border);
   background: var(--bg-elevated);
   box-shadow: var(--shadow-sm);
+  min-width: 0;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -623,6 +624,11 @@ kbd {
   width: 100%;
   justify-content: center;
   box-sizing: border-box;
+  border-radius: 12px;
+  padding: 13px 18px;
+  font-size: 15px;
+  line-height: 1.35;
+  text-align: center;
 }
 
 .install-disclaimer {
@@ -681,6 +687,7 @@ kbd {
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   margin-top: auto;
+  min-width: 0;
 }
 
 .cmd-prompt {
