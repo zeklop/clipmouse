@@ -222,46 +222,74 @@
       <div class="container">
         <div class="section-head">
           <h2 data-i18n="inst_title">Установка</h2>
-          <p class="section-sub" data-i18n="inst_sub">Готовый DMG — в GitHub Releases, ставится и через Homebrew; либо соберите одной командой из репозитория. Фазы 0–6 реализованы, версия 0.2.0.</p>
+          <p class="section-sub" data-i18n="inst_sub">Выберите удобный способ: готовый DMG, быстрая команда в Терминале или Homebrew.</p>
         </div>
-        <div class="install-grid">
-          <div>
-            <div class="step">
-              <div class="step-num">1</div>
-              <div>
-                <h3 data-i18n="ist1t">Клонируйте репозиторий</h3>
-                <p data-i18n="ist1d">Понадобятся Command Line Tools для Swift 6 — Xcode не нужен.</p>
-              </div>
+
+        <div class="install-cards">
+          <!-- Путь 1: DMG -->
+          <div class="install-card">
+            <div class="install-card-head">
+              <span class="install-badge" data-i18n="inst_dmg_badge">Графический установщик</span>
+              <h3 data-i18n="inst_dmg_title">Скачать .dmg</h3>
+              <p data-i18n="inst_dmg_desc">Классический образ диска. Скачайте и перетащите ClipMouse в «Программы».</p>
             </div>
-            <div class="step">
-              <div class="step-num">2</div>
-              <div>
-                <h3 data-i18n="ist2t">make install</h3>
-                <p data-i18n="ist2d">Соберёт release-сборку, сгенерирует иконку icns, подпишет (свой сертификат подхватится сам) и скопирует в /Applications.</p>
-              </div>
+            <div class="install-card-action">
+              <a class="btn btn-primary btn-block" href="https://github.com/zeklop/clipmouse/releases/download/v0.2.0/ClipMouse-0.2.0.dmg" data-i18n="inst_dmg_btn">Скачать ClipMouse 0.2.0 (.dmg)</a>
             </div>
-            <div class="step">
-              <div class="step-num">3</div>
-              <div>
-                <h3 data-i18n="ist3t">Разрешения при первом запуске</h3>
-                <p data-i18n="ist3d">Разрешите доступ к буферу обмена и выдайте Accessibility — приложение само подскажет, где нажать.</p>
-              </div>
+            <div class="install-disclaimer">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <span data-i18n-html="inst_notary_note">Приложение без нотаризации Apple: при первом запуске нажмите «Открыть всё равно» в <a href="permissions.ru.md#1-всё-равно-открыть">Системных настройках →</a></span>
             </div>
           </div>
-          <div class="terminal">
-            <div class="term-bar">
-              <span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span>
-              <span class="term-title">zsh — clipmouse</span>
+
+          <!-- Путь 2: Терминал в одну команду -->
+          <div class="install-card install-card-featured">
+            <div class="install-card-head">
+              <span class="install-badge badge-accent" data-i18n="inst_term_badge">Терминал · Без карантина</span>
+              <h3 data-i18n="inst_term_title">Установка в одну команду</h3>
+              <p data-i18n="inst_term_desc">Скрипт проверит SHA-256, снимет карантин Gatekeeper и запустит приложение.</p>
             </div>
-            <div class="term-body">
-              <div class="term-line"><span class="term-prompt">$</span> git clone https://github.com/zeklop/clipmouse.git</div>
-              <div class="term-line"><span class="term-prompt">$</span> cd clipmouse</div>
-              <div class="term-line"><span class="term-prompt">$</span> make install</div>
-              <div class="term-line term-comment"># build → bundle → sign → /Applications</div>
-              <div class="term-line"><span class="term-prompt">$</span> make check</div>
-              <div class="term-line"><span class="term-ok">✓ selftest: 39/39</span></div>
+            <ol class="install-steps">
+              <li data-i18n-html="inst_term_step1">Откройте <strong>Терминал</strong> (Spotlight: <kbd>⌘Space</kbd> → «Терминал»)</li>
+              <li data-i18n-html="inst_term_step2">Вставьте команду и нажмите <kbd>Enter</kbd>:</li>
+            </ol>
+            <div class="cmd-box">
+              <span class="cmd-prompt">$</span>
+              <code id="cmd-curl">curl -fsSL https://zeklop.github.io/clipmouse/install.sh | bash</code>
+              <button class="copy-btn" type="button" data-copy="curl -fsSL https://zeklop.github.io/clipmouse/install.sh | bash" aria-label="Копировать команду">
+                <span class="copy-text" data-i18n="inst_copy">Копировать</span>
+              </button>
             </div>
+            <p class="cmd-subtext" data-i18n="inst_term_sub">Скрипт открыт и проверяет контрольную сумму перед распаковкой.</p>
           </div>
+
+          <!-- Путь 3: Homebrew -->
+          <div class="install-card">
+            <div class="install-card-head">
+              <span class="install-badge" data-i18n="inst_brew_badge">Пакетный менеджер</span>
+              <h3 data-i18n="inst_brew_title">Homebrew Cask</h3>
+              <p data-i18n="inst_brew_desc">Для тех, кто управляет софтом через brew. Установка через официальный tap репозиторий.</p>
+            </div>
+            <div class="cmd-box">
+              <span class="cmd-prompt">$</span>
+              <code id="cmd-brew">brew tap zeklop/tap && brew install --cask clipmouse</code>
+              <button class="copy-btn" type="button" data-copy="brew tap zeklop/tap && brew install --cask clipmouse" aria-label="Копировать команду">
+                <span class="copy-text" data-i18n="inst_copy">Копировать</span>
+              </button>
+            </div>
+            <p class="cmd-subtext" data-i18n-html="inst_brew_sub">Свежий brew может запросить <code>brew trust zeklop/tap</code>.</p>
+          </div>
+        </div>
+
+        <!-- Путь 4: Сборка из исходников на GitHub -->
+        <div class="install-source-note">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/>
+            <path d="M9 18c-4.51 2-5-2-7-2"/>
+          </svg>
+          <span data-i18n-html="inst_source_info">Хотите собрать из исходников? Инструкции для разработчиков с <code>make install</code> и <code>make check</code> — в <a href="https://github.com/zeklop/clipmouse#readme" target="_blank" rel="noopener">репозитории на GitHub →</a></span>
         </div>
       </div>
     </section>

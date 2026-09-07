@@ -38,10 +38,25 @@ const I18N = {
     p3t: "Чёрный список", p3d: "Bitwarden, Passwords и Terminal заблокированы по умолчанию; правый клик по клипу — Never save from этого приложения.",
     p4t: "Дамп перед очисткой", p4d: "Clear History сначала пишет резервный дамп — случайная очистка ничего не теряет.",
     inst_title: "Установка",
-    inst_sub: "Готовый DMG — в GitHub Releases, ставится и через Homebrew; либо соберите одной командой из репозитория. Фазы 0–6 реализованы, версия 0.2.0.",
-    ist1t: "Клонируйте репозиторий", ist1d: "Понадобятся Command Line Tools для Swift 6 — Xcode не нужен.",
-    ist2t: "make install", ist2d: "Соберёт release-сборку, сгенерирует иконку icns, подпишет (свой сертификат подхватится сам) и скопирует в /Applications.",
-    ist3t: "Разрешения при первом запуске", ist3d: "Разрешите доступ к буферу обмена и выдайте Accessibility — приложение само подскажет, где нажать.",
+    inst_sub: "Выберите удобный способ: готовый DMG, быстрая команда в Терминале или Homebrew.",
+    inst_dmg_badge: "Графический установщик",
+    inst_dmg_title: "Скачать .dmg",
+    inst_dmg_desc: "Классический образ диска. Скачайте и перетащите ClipMouse в «Программы».",
+    inst_dmg_btn: "Скачать ClipMouse 0.2.0 (.dmg)",
+    inst_notary_note: "Приложение без нотаризации Apple: при первом запуске нажмите «Открыть всё равно» в <a href=\"permissions.ru.md#1-всё-равно-открыть\">Системных настройках →</a>",
+    inst_term_badge: "Терминал · Без карантина",
+    inst_term_title: "Установка в одну команду",
+    inst_term_desc: "Скрипт проверит SHA-256, снимет карантин Gatekeeper и запустит приложение.",
+    inst_term_step1: "Откройте <strong>Терминал</strong> (Spotlight: <kbd>⌘Space</kbd> → «Терминал»)",
+    inst_term_step2: "Вставьте команду и нажмите <kbd>Enter</kbd>:",
+    inst_term_sub: "Скрипт открыт и проверяет контрольную сумму перед распаковкой.",
+    inst_brew_badge: "Пакетный менеджер",
+    inst_brew_title: "Homebrew Cask",
+    inst_brew_desc: "Для тех, кто управляет софтом через brew. Установка через официальный tap репозиторий.",
+    inst_brew_sub: "Свежий brew может запросить <code>brew trust zeklop/tap</code>.",
+    inst_source_info: "Хотите собрать из исходников? Инструкции для разработчиков с <code>make install</code> и <code>make check</code> — в <a href=\"https://github.com/zeklop/clipmouse#readme\" target=\"_blank\" rel=\"noopener\">репозитории на GitHub →</a>",
+    inst_copy: "Копировать",
+    inst_copied: "✓ Скопировано",
     foot_left: "ClipMouse 0.2.0 — преемник ClipMenu 0.4.3",
     foot_right: "zeklop · Swift 6 · AppKit · 2026",
     ph_shot: "Скриншот появится здесь"
@@ -80,10 +95,25 @@ const I18N = {
     p3t: "App blocklist", p3d: "Bitwarden, Passwords and Terminal are blocked by default; right-click a clip for “Never save from” that app.",
     p4t: "Backup before purge", p4d: "Clear History writes a backup dump first — an accidental purge loses nothing.",
     inst_title: "Install",
-    inst_sub: "A prebuilt DMG lives in GitHub Releases and installs via Homebrew; or build with one command from the repository. Phases 0–6 are complete, version 0.2.0.",
-    ist1t: "Clone the repository", ist1d: "You will need the Command Line Tools for Swift 6 — no Xcode required.",
-    ist2t: "make install", ist2d: "Builds the release, generates the icns icon, signs it (your own certificate is picked up automatically) and copies to /Applications.",
-    ist3t: "Permissions on first launch", ist3d: "Allow clipboard access and grant Accessibility — the app walks you to the right screens.",
+    inst_sub: "Choose your way: prebuilt DMG, quick Terminal one-liner or Homebrew.",
+    inst_dmg_badge: "Graphical installer",
+    inst_dmg_title: "Download .dmg",
+    inst_dmg_desc: "Classic disk image. Download and drag ClipMouse into Applications.",
+    inst_dmg_btn: "Download ClipMouse 0.2.0 (.dmg)",
+    inst_notary_note: "The app is not notarized by Apple: on first launch, click “Open Anyway” in <a href=\"permissions.md#1-open-the-app-anyway\">System Settings →</a>",
+    inst_term_badge: "Terminal · No quarantine",
+    inst_term_title: "One-line installation",
+    inst_term_desc: "The script verifies SHA-256, strips Gatekeeper quarantine and launches the app.",
+    inst_term_step1: "Open <strong>Terminal</strong> (Spotlight: <kbd>⌘Space</kbd> → “Terminal”)",
+    inst_term_step2: "Paste the command and press <kbd>Enter</kbd>:",
+    inst_term_sub: "The script is open-source and checks the checksum before extracting.",
+    inst_brew_badge: "Package manager",
+    inst_brew_title: "Homebrew Cask",
+    inst_brew_desc: "For those who manage software with brew. Installs via our official tap.",
+    inst_brew_sub: "Recent brew versions may ask for <code>brew trust zeklop/tap</code>.",
+    inst_source_info: "Want to build from source? Developer instructions with <code>make install</code> and <code>make check</code> live in the <a href=\"https://github.com/zeklop/clipmouse#readme\" target=\"_blank\" rel=\"noopener\">GitHub repository →</a>",
+    inst_copy: "Copy",
+    inst_copied: "✓ Copied",
     foot_left: "ClipMouse 0.2.0 — successor to ClipMenu 0.4.3",
     foot_right: "zeklop · Swift 6 · AppKit · 2026",
     ph_shot: "Screenshot goes here"
@@ -175,3 +205,26 @@ if (settingsImg) {
     });
   });
 }
+
+/* ---------- копирование команд в буфер ---------- */
+
+document.querySelectorAll(".copy-btn").forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    const text = btn.dataset.copy;
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      const dict = I18N[lang] || I18N.ru;
+      const textEl = btn.querySelector(".copy-text") || btn;
+      const originalText = dict.inst_copy || "Копировать";
+      textEl.textContent = dict.inst_copied || "✓ Скопировано";
+      btn.classList.add("copied");
+      setTimeout(() => {
+        textEl.textContent = dict.inst_copy || originalText;
+        btn.classList.remove("copied");
+      }, 2000);
+    } catch {
+      /* приватный режим или блокировка буфера */
+    }
+  });
+});

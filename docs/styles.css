@@ -545,88 +545,235 @@ kbd {
 
 /* ---------- установка ---------- */
 
-.install-grid {
+.install-cards {
   display: grid;
-  grid-template-columns: 1fr 1.16fr;
-  gap: 56px;
-  align-items: start;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  align-items: stretch;
 }
 
-.step {
+.install-card {
   display: flex;
-  gap: 16px;
-  padding: 18px 0;
-  border-bottom: 1px solid var(--border);
+  flex-direction: column;
+  padding: 28px 24px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.step:last-of-type { border-bottom: 0; }
-
-.step-num {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-  font-size: 14px;
-  font-weight: 700;
+.install-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
 }
 
-.step h3 { font-size: 16px; font-weight: 650; }
+.install-card-featured {
+  border-color: var(--accent);
+  background: linear-gradient(180deg, var(--bg-elevated) 0%, rgba(255, 149, 0, 0.04) 100%);
+}
 
-.step p {
-  margin-top: 5px;
-  font-size: 14px;
-  line-height: 1.55;
+.install-card-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.install-badge {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 980px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.05);
   color: var(--label-2);
 }
 
-/* терминал */
-
-.terminal {
-  border-radius: 13px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: var(--shadow-lg);
-  background: var(--term-bg);
+[data-theme="dark"] .install-badge {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--label-2);
 }
 
-.term-bar {
+.badge-accent {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.install-card h3 {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.install-card p {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--label-2);
+}
+
+.install-card-action {
+  margin-top: 4px;
+  margin-bottom: 18px;
+}
+
+.btn-block {
+  width: 100%;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.install-disclaimer {
+  margin-top: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 149, 0, 0.08);
+  border: 1px solid rgba(255, 149, 0, 0.22);
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--label);
+}
+
+.install-disclaimer svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--accent-strong);
+}
+
+.install-disclaimer a {
+  color: var(--accent-strong);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.install-disclaimer a:hover {
+  filter: brightness(1.15);
+}
+
+.install-steps {
+  margin: 0 0 16px;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--label-2);
+}
+
+.install-steps strong {
+  color: var(--label);
+}
+
+.cmd-box {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 11px 14px;
-  background: rgba(255, 255, 255, 0.05);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--term-bg);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  margin-top: auto;
 }
 
-.term-dot { width: 12px; height: 12px; border-radius: 50%; }
-.term-dot.r { background: #ff5f57; }
-.term-dot.y { background: #febc2e; }
-.term-dot.g { background: #28c840; }
-
-.term-title {
-  margin-left: 6px;
-  font-size: 12.5px;
-  color: #98989d;
+.cmd-prompt {
+  color: #ff9f0a;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 13px;
+  font-weight: 600;
+  user-select: none;
 }
 
-.term-body {
-  padding: 18px 20px 22px;
-  font: 400 13px/1.85 ui-monospace, "SF Mono", Menlo, monospace;
-  color: #e8e8ed;
+.cmd-box code {
+  flex: 1;
+  min-width: 0;
   overflow-x: auto;
+  white-space: nowrap;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12.5px;
+  color: #f5f5f7;
+  scrollbar-width: none;
 }
 
-.term-line { white-space: nowrap; }
+.cmd-box code::-webkit-scrollbar {
+  display: none;
+}
 
-.term-prompt { color: #ff9f0a; font-weight: 600; }
+.copy-btn {
+  all: unset;
+  cursor: pointer;
+  flex: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  transition: background 0.15s ease, transform 0.1s ease;
+  user-select: none;
+}
 
-.term-comment { color: #6f6f76; }
+.copy-btn:hover {
+  background: var(--accent-strong);
+}
 
-.term-ok { color: #30d158; }
+.copy-btn:active {
+  transform: scale(0.96);
+}
+
+.copy-btn.copied {
+  background: #30d158;
+}
+
+.cmd-subtext {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--label-3);
+  line-height: 1.4;
+}
+
+.cmd-subtext code {
+  font-size: 11.5px;
+}
+
+/* Плашка сборки из исходников */
+.install-source-note {
+  margin-top: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 20px;
+  border-radius: 14px;
+  border: 1px dashed var(--border-strong);
+  background: var(--bg-elevated);
+  font-size: 14px;
+  color: var(--label-2);
+  text-align: center;
+}
+
+.install-source-note svg {
+  flex: none;
+  color: var(--label-3);
+}
+
+.install-source-note a {
+  color: var(--accent-strong);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.install-source-note a:hover {
+  text-decoration: underline;
+}
 
 /* ---------- футер ---------- */
 
@@ -666,7 +813,7 @@ kbd {
   .privacy-grid { grid-template-columns: repeat(2, 1fr); }
   .stats { grid-template-columns: repeat(2, 1fr); }
 
-  .install-grid { grid-template-columns: 1fr; }
+  .install-cards { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 620px) {

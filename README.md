@@ -109,14 +109,22 @@ Measured on a live process, not promised on someone's word.
 
 ## Install
 
-Prebuilt DMG from [GitHub Releases](https://github.com/zeklop/clipmouse/releases) or via Homebrew (`brew tap zeklop/tap`) — or build from source with one command.
-
-```sh
-git clone https://github.com/zeklop/clipmouse.git
-cd clipmouse
-make install   # build → bundle → sign → /Applications
-make check     # debug + release + selftest; warnings fail the build
-```
+- **Prebuilt DMG** — from [GitHub Releases](https://github.com/zeklop/clipmouse/releases) (on first launch, click “Open Anyway” in [System Settings](docs/permissions.md#1-open-the-app-anyway)).
+- **Terminal one-liner** (verifies SHA-256, strips Gatekeeper quarantine and launches):
+  ```sh
+  curl -fsSL https://zeklop.github.io/clipmouse/install.sh | bash
+  ```
+- **Homebrew Cask**:
+  ```sh
+  brew tap zeklop/tap && brew install --cask clipmouse
+  ```
+- **Build from source**:
+  ```sh
+  git clone https://github.com/zeklop/clipmouse.git
+  cd clipmouse
+  make install   # build → bundle → sign → /Applications
+  make check     # debug + release + selftest; warnings fail the build
+  ```
 
 1. **Clone the repository.** You will need the Command Line Tools for Swift 6 — Xcode is not required.
 2. **`make install`** builds a release binary, generates the icns, signs it (a personal certificate is auto-detected) and copies it to `/Applications`.

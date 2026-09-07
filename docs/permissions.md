@@ -4,7 +4,7 @@ ClipMouse needs two one-time permissions — both are ordinary macOS toggles, an
 
 ## 1. Open the app anyway
 
-*Skip this step if you installed via Homebrew or built from source.*
+*Skip this step if you installed via the Terminal command, Homebrew or built from source.*
 
 macOS checks apps downloaded from the internet, and an app it doesn't recognize is blocked on first launch. That's expected and happens once:
 

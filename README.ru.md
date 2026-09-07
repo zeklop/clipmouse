@@ -109,14 +109,22 @@ ClipMouse не ходит в сеть — **вообще**. Ни телемет�
 
 ## Установка
 
-Готовый DMG — в [GitHub Releases](https://github.com/zeklop/clipmouse/releases) или через Homebrew (`brew tap zeklop/tap`), либо сборка из исходников одной командой.
-
-```sh
-git clone https://github.com/zeklop/clipmouse.git
-cd clipmouse
-make install   # build → bundle → sign → /Applications
-make check     # debug + release + selftest; ворнинги валят сборку
-```
+- **Готовый DMG** — в [GitHub Releases](https://github.com/zeklop/clipmouse/releases) (при первом запуске нажмите «Открыть всё равно» в [Системных настройках](docs/permissions.ru.md#1-всё-равно-открыть)).
+- **Терминал в одну команду** (проверит SHA-256, снимет карантин Gatekeeper и запустит):
+  ```sh
+  curl -fsSL https://zeklop.github.io/clipmouse/install.sh | bash
+  ```
+- **Homebrew Cask**:
+  ```sh
+  brew tap zeklop/tap && brew install --cask clipmouse
+  ```
+- **Сборка из исходников**:
+  ```sh
+  git clone https://github.com/zeklop/clipmouse.git
+  cd clipmouse
+  make install   # build → bundle → sign → /Applications
+  make check     # debug + release + selftest; ворнинги валят сборку
+  ```
 
 1. **Клонируйте репозиторий.** Понадобятся Command Line Tools для Swift 6 — Xcode не нужен.
 2. **`make install`** соберёт release-бинарник, сгенерирует icns, подпишет (собственный сертификат детектится сам) и скопирует в `/Applications`.
