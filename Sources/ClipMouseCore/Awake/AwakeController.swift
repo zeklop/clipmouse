@@ -9,6 +9,9 @@ public final class AwakeController {
 
     public private(set) var assertionID: IOPMAssertionID = 0
     public private(set) var expiresAt: Date?
+    /// Исходно выбранная длительность (не остаток) — для подсветки активной
+    /// пилюли в меню; nil при бессрочном и в выключенном состоянии.
+    public private(set) var activeDuration: Int?
     private var pollTimer: DispatchSourceTimer?
     private let prefs: Prefs
 
@@ -39,6 +42,7 @@ public final class AwakeController {
         }
         assertionID = id
         expiresAt = seconds.map { Date().addingTimeInterval(TimeInterval($0)) }
+        activeDuration = seconds
         startPolling()
         Log.awake.info("awake включён на \(seconds.map(String.init) ?? "∞", privacy: .public) с")
         onStateChange?()
@@ -51,6 +55,7 @@ public final class AwakeController {
         IOPMAssertionRelease(assertionID)
         assertionID = 0
         expiresAt = nil
+        activeDuration = nil
         pollTimer?.cancel()
         pollTimer = nil
         Log.awake.info("awake выключен")
@@ -72,6 +77,13 @@ public final class AwakeController {
         return String(format: "%d:%02d", m, s)
     }
 
+    /// «ЧЧ:мм» с ведущими нулями для строки Awake в меню (без секунд).
+    /// Остаток меньше минуты даёт 00:00 — допустимо, специально не
+    /// обрабатывается. Локализация не нужна: только цифры и двоеточие.
+    public static func hmLabel(_ seconds: Int) -> String {
+        String(format: "%02d:%02d", seconds / 3600, (seconds % 3600) / 60)
+    }
+
     private func startPolling() {
         pollTimer?.cancel()
         let t = DispatchSource.makeTimerSource(queue: .main)
@@ -89,6 +101,7 @@ public final class AwakeController {
         if isActive, let expiresAt, Date() >= expiresAt {
             assertionID = 0
             self.expiresAt = nil
+            activeDuration = nil
             pollTimer?.cancel()
             pollTimer = nil
             Log.awake.info("awake истёк по таймауту")

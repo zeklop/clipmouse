@@ -25,12 +25,14 @@
 "Indefinitely" = "Бессрочно";
 
 /* Меню — Бодрствование */
-"remaining.suffix" = "%@ осталось";
-"Awake ▸" = "Бодрствование ▸";
 "Turn Off" = "Выключить";
 "KeepingYouAwake is running" = "KeepingYouAwake запущен";
 "awake.remaining" = "Бодрствование: %@ осталось";
 "Awake: indefinite" = "Бодрствование: бессрочно";
+"awake.pill.hours" = "%d ч";
+"awake.row.off" = "Awake: выключен";
+"awake.otherDurations" = "Другие интервалы";
+"awake.ax.stop" = "Выключить";
 
 /* Меню — Сниппеты (только вставка, управление — в настройках) */
 "Manage Snippets…" = "Управление сниппетами…";

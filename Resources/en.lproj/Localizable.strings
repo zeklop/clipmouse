@@ -25,12 +25,14 @@
 "Indefinitely" = "Indefinitely";
 
 /* Menu — Awake */
-"remaining.suffix" = "%@ left";
-"Awake ▸" = "Awake ▸";
 "Turn Off" = "Turn Off";
 "KeepingYouAwake is running" = "KeepingYouAwake is running";
 "awake.remaining" = "Awake: %@ left";
 "Awake: indefinite" = "Awake: indefinite";
+"awake.pill.hours" = "%dh";
+"awake.row.off" = "Awake: off";
+"awake.otherDurations" = "Other durations";
+"awake.ax.stop" = "Turn off";
 
 /* Menu — Snippets (paste only, management lives in Settings) */
 "Manage Snippets…" = "Manage Snippets…";

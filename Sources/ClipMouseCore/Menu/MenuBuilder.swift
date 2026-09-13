@@ -90,63 +90,92 @@ public final class MenuBuilder: NSObject {
         }
     }
 
-    // MARK: - Awake (§9 Фаза 5, §8.2)
+    // MARK: - Awake (§9 Фаза 5, §8.2, ревизия 20)
 
-    /// Таймеры 5/10/15/30 мин, 1/2/5 ч, Indefinitely, Turn Off — дубль
-    /// тумблера из §8.1. Обратный отсчёт — в заголовке пункта; пока меню
-    /// открыто, тикает живьём (startAwakeTick).
+    /// Один пункт на кастомном view (AwakeRowView): плашка, зона молнии,
+    /// пилюли 1–5 ч, метка остатка. Часовые длительности — пилюлями,
+    /// остальные — меню по клику на молнию. Пока меню открыто, остаток
+    /// тикает живьём (startAwakeTick).
     private func addAwakeSection(to menu: NSMenu) {
         guard let awake else { return } // Фаза 5 срезана — секции нет
 
-        let durations: [(String, Int?)] = [
-            (String(localized: "5 min"), 300), (String(localized: "10 min"), 600),
-            (String(localized: "15 min"), 900), (String(localized: "30 min"), 1800),
-            (String(localized: "1 hour"), 3600), (String(localized: "2 hours"), 7200),
-            (String(localized: "5 hours"), 18_000),
-            (String(localized: "Indefinitely"), nil),
-        ]
-        let suffix: String
+        let row = AwakeRowView(hourSteps: [3600, 7200, 10_800, 14_400, 18_000],
+                               activeSeconds: awake.activeDuration,
+                               isActive: awake.isActive)
+        // начальное значение метки — при создании, не ждать первого тика
         if awake.isActive, let rem = awake.remaining() {
-            suffix = "   " + String(format: String(localized: "remaining.suffix"), rem.label)
-        } else if awake.isActive {
-            suffix = "   ∞"
-        } else {
-            suffix = ""
+            row.remainingLabel = AwakeController.hmLabel(rem.seconds)
+        }
+        row.onPick = { [weak self] seconds in self?.awake?.enable(seconds: seconds) }
+        row.onStop = { [weak self] in self?.awake?.disable() }
+        row.onLabel = { [weak self] in
+            // промах мимо пилюль при включённом кофеине ничего не делает
+            guard let self, let awake = self.awake, !awake.isActive else { return }
+            awake.enable(seconds: self.prefs.awakeDefaultDuration)
         }
 
-        let root = NSMenuItem(title: String(localized: "Awake ▸") + suffix, action: nil, keyEquivalent: "")
-        // Активный awake подсвечивается системным оранжевым (#FF9F0A — палитра колец)
-        if awake.isActive {
-            root.attributedTitle = Self.awakeTitle(String(localized: "Awake ▸") + suffix)
-        }
-        let sub = NSMenu()
-        for (title, seconds) in durations {
-            let item = NSMenuItem(title: title, action: #selector(awakeDuration(_:)),
-                                  keyEquivalent: "")
-            item.target = self
-            item.tag = seconds ?? -1
-            sub.addItem(item)
-        }
-        sub.addItem(.separator())
-        let off = NSMenuItem(title: String(localized: "Turn Off"), action: #selector(awakeOff), keyEquivalent: "")
-        off.target = self
-        off.isEnabled = awake.isActive
-        sub.addItem(off)
-        menu.setSubmenu(sub, for: root)
-        menu.addItem(root)
+        let item = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        // NSMenu не автосайзит кастомные view — без явного фрейма пункт
+        // схлопывается в ноль; ширина растягивается маской.
+        row.frame = NSRect(origin: .zero, size: row.intrinsicContentSize)
+        row.autoresizingMask = .width
+        item.view = row
+        menu.addItem(item)
+        // Дополнительные длительности — соседний пункт с подменю (фолбэк §6:
+        // popUp из активного tracking по клику из кастомного view не рисуется,
+        // подтверждено живьём 13.09.2026). Такое подменю AppKit открывает сам,
+        // в том числе по задержке курсора — без клика.
+        menu.addItem(otherDurationsItem())
+
         // Живой отсчёт, пока меню открыто (бессрочный режим — только подсветка)
         if awake.isActive, awake.remaining() != nil {
-            startAwakeTick(root: root, menu: menu)
+            startAwakeTick(row: row, menu: menu)
         }
 
         // два ассерта: выключение в ClipMouse не снимет чужой (§9 Фаза 5)
         if !NSRunningApplication.runningApplications(
             withBundleIdentifier: "com.marci-mh.KeepingYouAwake").isEmpty {
-            let row = NSMenuItem(title: String(localized: "KeepingYouAwake is running"),
+            let kyw = NSMenuItem(title: String(localized: "KeepingYouAwake is running"),
                                  action: nil, keyEquivalent: "")
-            row.isEnabled = false
-            menu.addItem(row)
+            kyw.isEnabled = false
+            menu.addItem(kyw)
         }
+    }
+
+    /// Подменю дополнительных длительностей «Другие интервалы ▸» (фолбэк §6):
+    /// старое подменю минус часовые — те теперь пилюли в строке Awake.
+    /// Отдельный пункт с подменю нативно раскрывается и кликом, и задержкой
+    /// курсора; время жизни не управляем.
+    private func otherDurationsItem() -> NSMenuItem {
+        let more = NSMenuItem(title: String(localized: "awake.otherDurations"),
+                              action: nil, keyEquivalent: "")
+        let sub = NSMenu()
+        sub.autoenablesItems = false
+        let minutes: [(String, Int)] = [
+            (String(localized: "5 min"), 300), (String(localized: "10 min"), 600),
+            (String(localized: "15 min"), 900), (String(localized: "30 min"), 1800),
+        ]
+        for (title, seconds) in minutes {
+            let item = NSMenuItem(title: title, action: #selector(awakeDuration(_:)),
+                                  keyEquivalent: "")
+            item.target = self
+            item.tag = seconds
+            sub.addItem(item)
+        }
+        sub.addItem(.separator())
+        let indef = NSMenuItem(title: String(localized: "Indefinitely"),
+                               action: #selector(awakeDuration(_:)), keyEquivalent: "")
+        indef.target = self
+        indef.tag = -1
+        sub.addItem(indef)
+        sub.addItem(.separator())
+        let off = NSMenuItem(title: String(localized: "Turn Off"),
+                             action: #selector(awakeOff), keyEquivalent: "")
+        off.target = self
+        off.isEnabled = awake?.isActive ?? false
+        sub.addItem(off)
+        more.submenu = sub
+        return more
     }
 
     @objc private func awakeDuration(_ sender: NSMenuItem) {
@@ -163,23 +192,16 @@ public final class MenuBuilder: NSObject {
     private var awakeTickTimer: DispatchSourceTimer?
     private var awakeTickObserver: NSObjectProtocol?
 
-    /// Оранжевый моноширинно-цифровой тайтл: «10:00 → 9:59» без дёргания ширины.
-    private static func awakeTitle(_ text: String) -> NSAttributedString {
-        NSAttributedString(string: text, attributes: [
-            .foregroundColor: NSColor.systemOrange,
-            .font: NSFont.monospacedDigitSystemFont(ofSize: NSFont.menuFont(ofSize: 0).pointSize,
-                                                     weight: .regular),
-        ])
-    }
-
     /// DispatchSourceTimer на main queue: обычный Timer замирает в tracking-режиме
     /// run loop (AGENTS.md), этот — нет. Паттерн как в AwakeController.startPolling.
-    private func startAwakeTick(root: NSMenuItem, menu: NSMenu) {
+    /// Период 20 с: метка минутная, отставание до 20 с незаметно, перерисовок в
+    /// 20 раз меньше, чем при тике в 1 с.
+    private func startAwakeTick(row: AwakeRowView, menu: NSMenu) {
         stopAwakeTick()
         let t = DispatchSource.makeTimerSource(queue: .main)
-        t.schedule(deadline: .now() + 1, repeating: 1)
-        t.setEventHandler { [weak self, weak root] in
-            MainActor.assumeIsolated { self?.awakeTick(root: root) }
+        t.schedule(deadline: .now() + 20, repeating: 20)
+        t.setEventHandler { [weak self, weak row] in
+            MainActor.assumeIsolated { self?.awakeTick(row: row) }
         }
         t.resume()
         awakeTickTimer = t
@@ -198,23 +220,19 @@ public final class MenuBuilder: NSObject {
         }
     }
 
-    private func awakeTick(root: NSMenuItem?) {
-        let base = String(localized: "Awake ▸")
-        // Выключили извне (батарея/таймаут PM) — вернуть обычный тайтл
+    private func awakeTick(row: AwakeRowView?) {
+        // Выключили извне (батарея/таймаут PM) — тик больше не нужен
         guard let awake, awake.isActive else {
-            root?.title = base
             stopAwakeTick()
             return
         }
         guard let rem = awake.remaining() else { return } // бессрочный — тик не должен работать
         if rem.seconds <= 0 {
             // Состояние синхронизирует AwakeController.periodicCheck
-            root?.title = base
             stopAwakeTick()
             return
         }
-        let suffix = "   " + String(format: String(localized: "remaining.suffix"), rem.label)
-        root?.attributedTitle = Self.awakeTitle(base + suffix)
+        row?.remainingLabel = AwakeController.hmLabel(rem.seconds)
     }
 
     /// Секция сниппетов (ревизия 16): управление переехало в настройки
@@ -352,7 +370,8 @@ public final class MenuBuilder: NSObject {
 
     /// SF-символ, покрашенный в цвет: template-картинка + маска destinationIn
     /// (contentTintColor и paletteColors при ручном draw не применяются).
-    private static func tintedSymbol(_ name: String, color: NSColor) -> NSImage? {
+    /// internal — пользуется и AwakeRowView (строка Awake, ревизия 20).
+    static func tintedSymbol(_ name: String, color: NSColor) -> NSImage? {
         guard let symbol = NSImage(systemSymbolName: name, accessibilityDescription: nil) else {
             return nil
         }
