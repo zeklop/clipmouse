@@ -106,12 +106,21 @@ public final class MenuBuilder: NSObject {
         if awake.isActive, let rem = awake.remaining() {
             row.remainingLabel = AwakeController.hmLabel(rem.seconds)
         }
-        row.onPick = { [weak self] seconds in self?.awake?.enable(seconds: seconds) }
-        row.onStop = { [weak self] in self?.awake?.disable() }
+        row.onPick = { [weak self] seconds in
+            guard let self, let awake = self.awake else { return }
+            awake.enable(seconds: seconds)
+            self.refreshAwakeRow(row)
+        }
+        row.onStop = { [weak self] in
+            guard let self, let awake = self.awake else { return }
+            awake.disable()
+            self.refreshAwakeRow(row)
+        }
         row.onLabel = { [weak self] in
             // промах мимо пилюль при включённом кофеине ничего не делает
             guard let self, let awake = self.awake, !awake.isActive else { return }
             awake.enable(seconds: self.prefs.awakeDefaultDuration)
+            self.refreshAwakeRow(row)
         }
 
         let item = NSMenuItem(title: "", action: nil, keyEquivalent: "")
@@ -139,6 +148,22 @@ public final class MenuBuilder: NSObject {
                                  action: nil, keyEquivalent: "")
             kyw.isEnabled = false
             menu.addItem(kyw)
+        }
+    }
+
+    /// Обновить строку Awake на месте после клика (ревизия 21: меню остаётся
+    /// открытым): заливка/стоп/метка по текущему состоянию, тик — под новое
+    /// состояние (запустить при активном с остатком, остановить иначе).
+    private func refreshAwakeRow(_ row: AwakeRowView) {
+        guard let awake else { return }
+        let rem = awake.remaining()
+        row.updateState(isActive: awake.isActive,
+                        activeSeconds: awake.activeDuration,
+                        remainingLabel: rem.map { AwakeController.hmLabel($0.seconds) })
+        if awake.isActive, rem != nil, let menu = row.enclosingMenuItem?.menu {
+            startAwakeTick(row: row, menu: menu)
+        } else {
+            stopAwakeTick()
         }
     }
 

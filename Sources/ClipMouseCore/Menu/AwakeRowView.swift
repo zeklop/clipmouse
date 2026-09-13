@@ -1,12 +1,14 @@
 import AppKit
 
-/// Строка Awake в меню (ревизия 20): плашка с заголовком «Awake», меткой
-/// остатка «ЧЧ:мм» и пилюлями 1–5 ч (при активном кофеине — с заливкой
-/// активной и красной стоп-пилюлей). Дополнительные длительности — соседним
-/// пунктом «Другие интервалы ▸» (фолбэк §6: popUp из активного tracking
-/// меню по клику из кастомного view не рисуется — подтверждено живьём).
-/// NSMenu не автосайзит кастомные view — вся геометрия вручную фреймами,
-/// без auto-layout. Паттерн кликов — ClipItemView в MenuBuilder.swift.
+/// Строка Awake в меню (ревизия 20, ревизия 21): плашка с заголовком «Awake»,
+/// меткой остатка «ЧЧ:мм» и пилюлями 1–5 ч (при активном кофеине — с заливкой
+/// активной и красной стоп-пилюлей). Клики не закрывают меню — строка
+/// обновляется на месте через updateState (у пункта action = nil, AppKit сам
+/// ничего не выполняет — дублирования нет). Дополнительные длительности —
+/// соседним пунктом «Другие интервалы ▸» (нативное подменю, оно закрывает
+/// меню — стандартное поведение). NSMenu не автосайзит кастомные view —
+/// вся геометрия вручную фреймами, без auto-layout. Образец ввода —
+/// ClipItemView в MenuBuilder.swift.
 final class AwakeRowView: NSView {
 
     // MARK: - Колбэки и состояние
@@ -24,14 +26,24 @@ final class AwakeRowView: NSView {
     var onLabel: (@MainActor () -> Void)?
 
     private let hourSteps: [Int]
-    private let activeSeconds: Int?
-    private let isActive: Bool
+    private var activeSeconds: Int?
+    private var isActive: Bool
 
     init(hourSteps: [Int], activeSeconds: Int?, isActive: Bool) {
         self.hourSteps = hourSteps
         self.activeSeconds = activeSeconds
         self.isActive = isActive
         super.init(frame: .zero)
+    }
+
+    /// Обновить состояние на месте (ревизия 21: меню не закрывается по клику —
+    /// строка сама перерисовывается: заливка активной пилюли, стоп-пилюля,
+    /// метка остатка).
+    func updateState(isActive: Bool, activeSeconds: Int?, remainingLabel: String?) {
+        self.isActive = isActive
+        self.activeSeconds = activeSeconds
+        self.remainingLabel = remainingLabel
+        needsDisplay = true
     }
 
     @available(*, unavailable)
@@ -220,20 +232,21 @@ final class AwakeRowView: NSView {
         // правый клик по строке Awake ничего не делает (тумблер живёт на иконке)
     }
 
+    // Колбэки не гасят tracking (ревизия 21): у пункта меню action = nil,
+    // меню само ничего не выполняет — дублирования нет, строка обновляется
+    // на месте через updateState. Меню закрывается кликом вне его.
+
     private func firePick(_ seconds: Int) {
-        enclosingMenuItem?.menu?.cancelTracking()
         let cb = onPick
         Task { @MainActor in cb?(seconds) }
     }
 
     private func fireStop() {
-        enclosingMenuItem?.menu?.cancelTracking()
         let cb = onStop
         Task { @MainActor in cb?() }
     }
 
     private func fireLabel() {
-        enclosingMenuItem?.menu?.cancelTracking()
         let cb = onLabel
         Task { @MainActor in cb?() }
     }
