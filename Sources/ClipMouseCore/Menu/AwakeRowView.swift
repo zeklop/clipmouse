@@ -57,6 +57,7 @@ final class AwakeRowView: NSView {
     private static let pillGap: CGFloat = 4
     private static let pillPadding: CGFloat = 7
     private static let stopPadding: CGFloat = 6
+    private static let stopGap: CGFloat = 10 // стоп отделена от часовых сильнее
     private static let labelGap: CGFloat = 8   // заголовок → метка остатка
     private static let pillsGap: CGFloat = 12  // заголовок/метка → пилюли
     private static let minWidth: CGFloat = 280 // menu.minimumWidth
@@ -96,33 +97,37 @@ final class AwakeRowView: NSView {
 
     private var stopIcon: NSImage? { MenuBuilder.tintedSymbol("stop.fill", color: .white) }
 
+    private var stopPillWidth: CGFloat {
+        guard let icon = stopIcon else { return 0 }
+        return ceil(icon.size.width) + 2 * Self.stopPadding
+    }
+
     private func pillsTotalWidth() -> CGFloat {
         var w: CGFloat = 0
         for step in hourSteps { w += hourPillWidth(step) + Self.pillGap }
-        if isActive, let icon = stopIcon {
-            w += ceil(icon.size.width) + 2 * Self.stopPadding + Self.pillGap
-        }
+        if isActive { w += Self.stopGap + stopPillWidth }
         return max(w - Self.pillGap, 0)
     }
 
     /// Единственный источник прямоугольников пилюль — и для draw, и для
-    /// hit-теста. Прижаты к правому краю, порядок слева направо: 1 ч … 5 ч, стоп.
+    /// hit-теста. Прижаты к правому краю; часовые всегда занимают одно и то
+    /// же место (ревизия 21), стоп-пилюля дорастает слева от них с
+    /// увеличенным зазором и при появлении/исчезновении их не сдвигает.
     private func pillRects() -> (hours: [(seconds: Int, rect: NSRect)], stop: NSRect?) {
         let pillY = bounds.midY - Self.pillHeight / 2
         var x = max(bounds.width, intrinsicContentSize.width) - Self.inset
-        var stopRect: NSRect? = nil
-        if isActive, let icon = stopIcon {
-            let w = ceil(icon.size.width) + 2 * Self.stopPadding
-            x -= w
-            stopRect = NSRect(x: x, y: pillY, width: w, height: Self.pillHeight)
-            x -= Self.pillGap
-        }
         var hours: [(seconds: Int, rect: NSRect)] = []
         for step in hourSteps.reversed() {
             let w = hourPillWidth(step)
             x -= w
             hours.append((step, NSRect(x: x, y: pillY, width: w, height: Self.pillHeight)))
             x -= Self.pillGap
+        }
+        var stopRect: NSRect? = nil
+        if isActive {
+            x -= Self.stopGap
+            x -= stopPillWidth
+            stopRect = NSRect(x: x, y: pillY, width: stopPillWidth, height: Self.pillHeight)
         }
         return (hours.reversed(), stopRect)
     }
@@ -286,18 +291,19 @@ final class AwakeRowView: NSView {
     override func accessibilityCustomActions() -> [NSAccessibilityCustomAction]? {
         var actions: [NSAccessibilityCustomAction] = []
         var targets: [AXAction] = []
-        for (seconds, _) in pillRects().hours {
-            let target = AXAction { [weak self] in self?.firePick(seconds); return true }
-            targets.append(target)
-            actions.append(NSAccessibilityCustomAction(
-                name: pillTitle(seconds), target: target, selector: #selector(AXAction.axPerform)))
-        }
+        // порядок действий зеркалит визуальный: стоп (левее всех), затем часовые
         if isActive {
             let stopTarget = AXAction { [weak self] in self?.fireStop(); return true }
             targets.append(stopTarget)
             actions.append(NSAccessibilityCustomAction(
                 name: String(localized: "awake.ax.stop"),
                 target: stopTarget, selector: #selector(AXAction.axPerform)))
+        }
+        for (seconds, _) in pillRects().hours {
+            let target = AXAction { [weak self] in self?.firePick(seconds); return true }
+            targets.append(target)
+            actions.append(NSAccessibilityCustomAction(
+                name: pillTitle(seconds), target: target, selector: #selector(AXAction.axPerform)))
         }
         // «Другие интервалы» отдельным пунктом меню — доступно VoiceOver
         // нативно, кастомное действие не нужно
