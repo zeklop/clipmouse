@@ -82,12 +82,12 @@ Every competitor covers exactly one category; ClipMouse is the only one covering
 | --- | --- |
 | Clipboard history menu | <kbd>⌘⇧V</kbd> |
 | Snippets menu | <kbd>⌘⇧B</kbd> |
-| Keep-awake (caffeine) | right-click the menu bar icon |
+| Keep-awake (caffeine) | right-click the menu bar icon · the Awake row in the menu (1–5 h pills, stop) |
 | Paste from search panel | <kbd>Return</kbd> · plain text <kbd>⌥</kbd> · POSIX path <kbd>⌘</kbd> · close <kbd>Esc</kbd> |
 | Save a clip as snippet | right-click the clip (menu or search) |
 | Settings | <kbd>⌘,</kbd> |
 
-The menu: history → Awake ▸ → Snippets (insertion + "Manage Snippets…") → Search… → Settings → Quit.
+The menu: history → the Awake row (1–5 h pills, stop, "Other durations ▸"; clicking keeps the menu open) → Snippets (insertion + "Manage Snippets…") → Search… → Settings → Quit.
 
 ## Privacy — your history never leaves your Mac
 
@@ -186,7 +186,7 @@ A native menu bar clipboard manager for macOS 26 that combines clipboard history
 Yes — a successor to ClipMenu 0.4.3, an x86_64 binary from 2008–2009 living on Rosetta 2. The ⌘⇧V / ⌘⇧B hotkeys carry over; old history is not migrated (it is a rolling buffer and refills in days; import is on the backlog). ClipMenu's JavaScript actions are intentionally not carried over.
 
 **Does it replace KeepingYouAwake?**
-Right-click the ClipMouse icon: timers from 5 minutes to indefinite, a battery threshold, and the countdown glows in the icon's orange rings. There is also a `clipmouse://caffeine/activate?seconds=N` URL scheme for scripts.
+Yes: right-click the ClipMouse icon toggles it, and the Awake row in the menu gives you 1–5 h pills in one click (the menu stays open, the countdown ticks right in the row), 5–30 minutes and indefinite under "Other durations", a battery threshold, and the countdown glows in the icon's orange rings. There is also a `clipmouse://caffeine/activate?seconds=N` URL scheme for scripts.
 
 **Does ClipMouse phone home?**
 Never. No network access at all — no telemetry, no analytics, no update checks.
@@ -210,6 +210,6 @@ English and Russian — the UI follows your system language (System Settings →
 
 ## Status
 
-Phases 0–6 implemented; version 0.2.0 shipped tabbed settings, inline snippet editing and temporary-secret protection.
+Phases 0–6 implemented; version 0.2.0 shipped tabbed settings, inline snippet editing and temporary-secret protection; 0.2.1 added the Awake row with 1–5 h pills, a stop pill and a live countdown right in the menu.
 
-ClipMouse 0.2.0 — successor to ClipMenu 0.4.3 · Swift 6 · AppKit · 2026
+ClipMouse 0.2.1 — successor to ClipMenu 0.4.3 · Swift 6 · AppKit · 2026
